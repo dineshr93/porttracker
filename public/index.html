@@ -133,14 +133,17 @@
     tbody tr { transition: background 0.12s; }
     tbody tr:hover { background: rgba(255,255,255,0.025); }
     td.port {
-      font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent);
+      font-variant-numeric: tabular-nums; font-weight: 700;
     }
-    td.protocol { color: var(--muted); }
-    .proto-pill {
-      display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px;
-      font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em;
-      background: var(--accent-soft); color: var(--accent);
+    td.port a {
+      color: var(--accent); text-decoration: none;
+      border-bottom: 1px dashed transparent;
+      transition: color 0.15s, border-color 0.15s;
     }
+    td.port a:hover {
+      color: var(--accent-strong); border-bottom-color: var(--accent);
+    }
+    td.port a::after { content: " ↗"; font-size: 0.8em; opacity: 0.6; }
     .empty {
       color: var(--muted); font-size: 0.92rem; padding: 1.6rem 0;
       text-align: center; border: 1px dashed var(--card-border); border-radius: 10px;
@@ -180,13 +183,6 @@
           <input id="port" type="number" min="1" max="65535" required placeholder="e.g. 8080">
         </div>
         <div>
-          <label for="protocol">Protocol</label>
-          <select id="protocol">
-            <option value="TCP">TCP</option>
-            <option value="UDP">UDP</option>
-          </select>
-        </div>
-        <div class="full">
           <label for="service">Service</label>
           <input id="service" type="text" required placeholder="e.g. Dev API server">
         </div>
@@ -206,7 +202,7 @@
       <h2>Current mappings</h2>
       <table>
         <thead>
-          <tr><th>Port</th><th>Service</th><th>Protocol</th><th>Notes</th><th></th></tr>
+          <tr><th>Port</th><th>Service</th><th>Notes</th><th></th></tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -245,6 +241,15 @@
       setTimeout(() => el.remove(), 4000);
     }
 
+    // Build the URL a port click should open: http://0.0.0.0:<port>
+    // plus any path stored in the notes (e.g. "/v1/models").
+    function portUrl(r) {
+      const base = `http://0.0.0.0:${r.port}`;
+      const desc = (r.description || '').trim();
+      if (desc.startsWith('/')) return base + desc;
+      return base;
+    }
+
     async function render() {
       const records = await request('GET', api);
       tbody.innerHTML = '';
@@ -252,10 +257,10 @@
 
       for (const r of records.sort((a, b) => a.port - b.port)) {
         const tr = document.createElement('tr');
+        const url = portUrl(r);
         tr.innerHTML = `
-          <td class="port">${r.port}</td>
+          <td class="port"><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${r.port}</a></td>
           <td>${escapeHtml(r.service)}</td>
-          <td class="protocol"><span class="proto-pill">${r.protocol}</span></td>
           <td>${escapeHtml(r.description || '')}</td>`;
 
         const td = document.createElement('td');
@@ -290,7 +295,6 @@
       editingId = r.id;
       formTitle.textContent = 'Edit mapping';
       document.getElementById('port').value = r.port;
-      document.getElementById('protocol').value = r.protocol;
       document.getElementById('service').value = r.service;
       document.getElementById('description').value = r.description || '';
       resetBtn.hidden = false;
@@ -309,7 +313,6 @@
       e.preventDefault();
       const payload = {
         port: Number(document.getElementById('port').value),
-        protocol: document.getElementById('protocol').value,
         service: document.getElementById('service').value.trim(),
         description: document.getElementById('description').value.trim(),
       };

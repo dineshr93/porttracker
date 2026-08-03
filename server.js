@@ -35,9 +35,6 @@ function validate(body, partial = false) {
   if (body.service !== undefined && (typeof body.service !== 'string' || !body.service.trim())) {
     errs.push('service must be a non-empty string');
   }
-  if (body.protocol !== undefined && !['TCP', 'UDP'].includes(body.protocol)) {
-    errs.push('protocol must be TCP or UDP');
-  }
   if (body.description !== undefined && typeof body.description !== 'string') {
     errs.push('description must be a string');
   }
@@ -90,7 +87,6 @@ async function handleApi(req, res, url) {
       id: nextId(records),
       port: Number(body.port),
       service: body.service.trim(),
-      protocol: body.protocol || 'TCP',
       description: body.description?.trim() || '',
       createdAt: new Date().toISOString(),
     };
@@ -112,7 +108,6 @@ async function handleApi(req, res, url) {
 
     if (body.port !== undefined) records[idx].port = Number(body.port);
     if (body.service !== undefined) records[idx].service = body.service.trim();
-    if (body.protocol !== undefined) records[idx].protocol = body.protocol;
     if (body.description !== undefined) records[idx].description = body.description.trim();
     records[idx].updatedAt = new Date().toISOString();
 

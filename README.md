@@ -6,10 +6,11 @@ It's a small CRUD app: add, view, edit, and delete port→service mappings from 
 
 ## Features
 
-- **Create** — record a port, service name, protocol (TCP/UDP), and optional notes.
+- **Create** — record a port, service name, and optional notes.
 - **Read** — see all current mappings in a table, sorted by port.
 - **Update** — edit any mapping inline.
 - **Delete** — remove a mapping with a confirmation prompt.
+- **Click to open** — clicking a port number opens the live site at `http://0.0.0.0:<port>`, plus the path in the notes if it starts with `/` (e.g. `/v1/models` → `http://0.0.0.0:8888/v1/models`).
 - **Persistent storage** — data lives in `data.json` on disk, so it survives restarts.
 - **Zero dependencies** — only Node's built-in `http` module; no `npm install`, no database, no framework.
 - **Minimalistic UI** — one self-contained HTML page with clean, responsive styling.
@@ -54,7 +55,6 @@ The browser talks to the server through a small JSON REST API.
   "id": 1,
   "port": 8080,
   "service": "Dev API",
-  "protocol": "TCP",
   "description": "local dev backend",
   "createdAt": "2026-08-03T09:46:09.306Z",
   "updatedAt": "2026-08-03T09:46:09.320Z"
@@ -63,8 +63,7 @@ The browser talks to the server through a small JSON REST API.
 
 - `port` — integer between 1 and 65535 (required).
 - `service` — non-empty name (required).
-- `protocol` — `TCP` or `UDP`, defaults to `TCP`.
-- `description` — free-form notes, optional.
+- `description` — free-form notes, optional. If it starts with `/` it's treated as a URL path (e.g. `/v1/models`), and clicking the port opens `http://0.0.0.0:<port><path>`.
 - `createdAt` / `updatedAt` — timestamps, set automatically.
 
 ### Example API calls
@@ -76,7 +75,7 @@ curl http://localhost:3000/api/ports
 # Create
 curl -X POST http://localhost:3000/api/ports \
   -H 'Content-Type: application/json' \
-  -d '{"port":8080,"service":"Dev API","protocol":"TCP","description":"local backend"}'
+  -d '{"port":8080,"service":"Dev API","description":"local backend"}'
 
 # Update
 curl -X PUT http://localhost:3000/api/ports/1 \
