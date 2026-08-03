@@ -103,9 +103,41 @@ porttracker/
 
 > Your data is **not** stored in the repo — it lives at `~/.porttracker/data.json` (or the dir set by `PORTTRACKERDIR`), so it's never committed or lost when you re-clone/redepoly. On first run, existing data from `~/.portainer/config.json` or an old in-project `data.json` is migrated automatically.
 
+## Docker
+
+The app ships with a minimal Dockerfile (`node:22-alpine`, zero npm dependencies — ~58 MB).
+
+Build the image:
+
+```bash
+docker build -t porttracker .
+```
+
+Run it on the default port 3000:
+
+```bash
+docker run -p 3000:3000 porttracker
+```
+
+Change the port while running — the `PORT` env var overrides the container's listening port (default 3000), so map the host to match:
+
+```bash
+# listen on 9000 inside the container, exposed on host port 9000
+docker run -p 9000:9000 -e PORT=9000 porttracker
+
+# host port 8080 → container port 9000
+docker run -p 8080:9000 -e PORT=9000 porttracker
+```
+
+Set the data directory with `PORTTRACKERDIR` (default `~/.porttracker` inside the container) and persist it on a host volume:
+
+```bash
+docker run -p 3000:3000 -e PORTTRACKERDIR=/data -v /host/dir:/data porttracker
+```
+
 ## Customization
 
-- **Change the port** the app listens on: edit `const PORT = 3000;` in `server.js`.
+- **Change the port** the app listens on: set `PORT` (default `3000`), e.g. `PORT=9000 npm start` or `docker run -e PORT=9000`.
 - **Set the data directory**: export `PORTTRACKERDIR=/some/dir` before starting, and data is stored in `$PORTTRACKERDIR/data.json`. Default is `~/.porttracker` (i.e. `~/.porttracker/data.json`).
 - **Styling**: tweak the CSS custom properties at the top of `public/index.html` (colors, spacing, fonts).
 

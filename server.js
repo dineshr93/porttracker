@@ -14,7 +14,7 @@ const DATA_DIR = process.env.PORTTRACKERDIR
   ? path.resolve(process.env.PORTTRACKERDIR)
   : path.join(os.homedir(), '.porttracker');
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 
 // --- Storage -----------------------------------------------------------
 async function load() {
