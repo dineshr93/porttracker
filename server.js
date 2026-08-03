@@ -6,10 +6,14 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Persist data in a stable, machine-wide location so a fresh deployment or
-// a re-cloned repo does not lose existing records. This file is outside the
-// project directory (and git), so it survives new instances.
-const DATA_FILE = path.join(os.homedir(), '.portainer', 'config.json');
+// Data directory. Override with the PORTTRACKERDIR env var; otherwise it
+// defaults to ~/.porttracker. The data file itself is data.json inside that
+// dir. Keeping it outside the project (and git) means a fresh deployment or
+// re-cloned repo does not lose existing records.
+const DATA_DIR = process.env.PORTTRACKERDIR
+  ? path.resolve(process.env.PORTTRACKERDIR)
+  : path.join(os.homedir(), '.porttracker');
+const DATA_FILE = path.join(DATA_DIR, 'data.json');
 const PORT = 3000;
 
 // --- Storage -----------------------------------------------------------
@@ -24,19 +28,24 @@ async function load() {
   }
 }
 
-// First run: if the old in-project data.json still exists, adopt its records
-// so nothing already entered is lost.
+// First run: if a previous data location still exists, adopt its records so
+// nothing already entered is lost. Tries the old ~/.portainer/config.json
+// first, then the legacy in-project data.json.
 async function migrateFromLegacy() {
-  const legacy = path.join(__dirname, 'data.json');
-  try {
-    const raw = await fs.readFile(legacy, 'utf8');
-    const parsed = JSON.parse(raw);
-    const records = Array.isArray(parsed.records) ? parsed.records : [];
-    if (records.length) await save(records);
-    return records;
-  } catch {
-    return [];
+  const oldFile = path.join(os.homedir(), '.portainer', 'config.json');
+  const legacyFile = path.join(__dirname, 'data.json');
+  for (const source of [oldFile, legacyFile]) {
+    try {
+      const raw = await fs.readFile(source, 'utf8');
+      const parsed = JSON.parse(raw);
+      const records = Array.isArray(parsed.records) ? parsed.records : [];
+      if (records.length) {
+        await save(records);
+        return records;
+      }
+    } catch {}
   }
+  return [];
 }
 
 async function save(records) {

@@ -11,7 +11,7 @@ It's a small CRUD app: add, view, edit, and delete port→service mappings from 
 - **Update** — edit any mapping inline.
 - **Delete** — remove a mapping with a confirmation prompt.
 - **Click to open** — clicking a port number opens the live site at `http://0.0.0.0:<port>`, plus the path in the notes if it starts with `/` (e.g. `/v1/models` → `http://0.0.0.0:8888/v1/models`).
-- **Persistent storage** — data lives in `~/.portainer/config.json` (outside the repo), so it survives restarts **and** fresh deployments / re-cloned repos.
+- **Persistent storage** — data lives in `~/.porttracker/data.json` (outside the repo), so it survives restarts **and** fresh deployments / re-cloned repos.
 - **Zero dependencies** — only Node's built-in `http` module; no `npm install`, no database, no framework.
 - **Minimalistic UI** — one self-contained HTML page with clean, responsive styling.
 
@@ -34,7 +34,7 @@ The app is two pieces:
 
 | Piece | File | Role |
 |-------|------|------|
-| Server | `server.js` | Node HTTP server: serves the frontend and exposes the REST API; reads/writes `~/.portainer/config.json`. |
+| Server | `server.js` | Node HTTP server: serves the frontend and exposes the REST API; reads/writes `~/.porttracker/data.json`. |
 | Frontend | `public/index.html` | Single-page UI (HTML + inline CSS + vanilla JS) for CRUD. |
 
 ### REST API
@@ -48,7 +48,7 @@ The browser talks to the server through a small JSON REST API.
 | `PUT`    | `/api/ports/:id`    | Update a mapping |
 | `DELETE` | `/api/ports/:id`    | Delete a mapping |
 
-**Record shape** (`~/.portainer/config.json` stores an array under `{ "records": [...] }`):
+**Record shape** (`~/.porttracker/data.json` stores an array under `{ "records": [...] }`):
 
 ```json
 {
@@ -96,16 +96,16 @@ porttracker/
 ├── server.js         # HTTP server, REST API, JSON-file storage
 ├── public/
 │   └── index.html    # single-page frontend (UI + logic)
-├── data.json         # legacy data (auto-migrated to ~/.portainer/config.json on first run)
+├── data.json         # legacy data (auto-migrated to ~/.porttracker/data.json on first run)
 └── README.md         # this file
 ```
 
-> Your data is **not** stored in the repo — it lives at `~/.portainer/config.json`, so it's never committed or lost when you re-clone/redepoly. On first run, any existing `data.json` in the project dir is migrated into this file automatically.
+> Your data is **not** stored in the repo — it lives at `~/.porttracker/data.json` (or the dir set by `PORTTRACKERDIR`), so it's never committed or lost when you re-clone/redepoly. On first run, existing data from `~/.portainer/config.json` or an old in-project `data.json` is migrated automatically.
 
 ## Customization
 
 - **Change the port** the app listens on: edit `const PORT = 3000;` in `server.js`.
-- **Move/rename the data file**: change `DATA_FILE` in `server.js` (defaults to `~/.portainer/config.json`).
+- **Set the data directory**: export `PORTTRACKERDIR=/some/dir` before starting, and data is stored in `$PORTTRACKERDIR/data.json`. Default is `~/.porttracker` (i.e. `~/.porttracker/data.json`).
 - **Styling**: tweak the CSS custom properties at the top of `public/index.html` (colors, spacing, fonts).
 
 ## Git history
