@@ -6,7 +6,7 @@ It's a small CRUD app: add, view, edit, and delete port→service mappings from 
 
 ## Features
 
-- **Create** — record a port, service name, and optional notes. The add form is tucked behind a themed **+** button in the top-right of the header, shown only when you click it.
+- **Create** — record a port, service name, and optional notes. The add form is tucked behind a themed **+** button in the top-right of the header; click it to toggle the form open/closed (the icon flips to **×** when open).
 - **Read** — see all current mappings in a table, sorted by port.
 - **Update** — edit any mapping inline.
 - **Delete** — remove a mapping with a confirmation prompt.
