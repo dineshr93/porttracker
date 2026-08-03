@@ -1,0 +1,12 @@
+{
+  "name": "porttracker",
+  "version": "1.0.0",
+  "description": "Minimalistic CRUD webapp to remember which service runs on which local host port.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
