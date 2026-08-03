@@ -116,9 +116,10 @@ docker build -t porttracker .
 Or use the bundled **Makefile** (removes the old image, clean-builds, then runs):
 
 ```bash
-make        # clean build + run on port 3000
+make        # clean build + run on port 3000 (data persisted to ~/.porttracker)
 make run    # same as above
 make run PORT=9000   # run on a different port
+make run DATA_DIR=/custom   # persist data somewhere else (default ~/.porttracker)
 make build  # remove old image + clean (no-cache) build only
 make clean  # remove old image and containers
 make stop   # stop/remove the running container
