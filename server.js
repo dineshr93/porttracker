@@ -1,10 +1,15 @@
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_FILE = path.join(__dirname, 'data.json');
+
+// Persist data in a stable, machine-wide location so a fresh deployment or
+// a re-cloned repo does not lose existing records. This file is outside the
+// project directory (and git), so it survives new instances.
+const DATA_FILE = path.join(os.homedir(), '.portainer', 'config.json');
 const PORT = 3000;
 
 // --- Storage -----------------------------------------------------------
@@ -14,12 +19,28 @@ async function load() {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed.records) ? parsed.records : [];
   } catch (err) {
-    if (err.code === 'ENOENT') return [];
+    if (err.code === 'ENOENT') return migrateFromLegacy();
     throw err;
   }
 }
 
+// First run: if the old in-project data.json still exists, adopt its records
+// so nothing already entered is lost.
+async function migrateFromLegacy() {
+  const legacy = path.join(__dirname, 'data.json');
+  try {
+    const raw = await fs.readFile(legacy, 'utf8');
+    const parsed = JSON.parse(raw);
+    const records = Array.isArray(parsed.records) ? parsed.records : [];
+    if (records.length) await save(records);
+    return records;
+  } catch {
+    return [];
+  }
+}
+
 async function save(records) {
+  await fs.mkdir(path.dirname(DATA_FILE), { recursive: true });
   await fs.writeFile(DATA_FILE, JSON.stringify({ records }, null, 2));
 }
 
