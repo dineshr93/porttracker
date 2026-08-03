@@ -157,19 +157,6 @@ docker run -p 3000:3000 -e PORTTRACKERDIR=/data -v /host/dir:/data porttracker
 - **Set the data directory**: export `PORTTRACKERDIR=/some/dir` before starting, and data is stored in `$PORTTRACKERDIR/data.json`. Default is `~/.porttracker` (i.e. `~/.porttracker/data.json`).
 - **Styling**: tweak the CSS custom properties at the top of `public/index.html` (colors, spacing, fonts).
 
-## Git history
-
-This project is under version control with a clear commit per change:
-
-```
-chore: scaffold repo with .gitignore and package.json
-feat: add zero-dependency Node server with CRUD REST API
-feat: add minimalistic single-page frontend
-docs: add README.md
-```
-
-Run `git log --oneline` inside `porttracker/` to see the history.
-
 ## License
 
 Free to use — this is a personal utility for your own machine.
