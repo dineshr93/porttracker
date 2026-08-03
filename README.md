@@ -6,11 +6,11 @@ It's a small CRUD app: add, view, edit, and delete port→service mappings from 
 
 ## Features
 
-- **Create** — record a port, service name, and optional notes. The add form is tucked behind a themed **+** button in the top-right of the header; click it to toggle the form open/closed (the icon flips to **×** when open).
+- **Create** — record a port, service name, and an optional endpoint. The add form is tucked behind a themed **+** button in the top-right of the header; click it to toggle the form open/closed (the icon flips to **×** when open).
 - **Read** — see all current mappings in a table, sorted by port.
 - **Update** — edit any mapping inline.
 - **Delete** — remove a mapping with a confirmation prompt.
-- **Click to open** — clicking a port number opens the live site at `http://0.0.0.0:<port>`, plus the path in the notes if it starts with `/` (e.g. `/v1/models` → `http://0.0.0.0:8888/v1/models`).
+- **Click to open** — clicking a port number opens the live site at `http://0.0.0.0:<port>`, plus the path in the endpoint if it starts with `/` (e.g. `/v1/models` → `http://0.0.0.0:8888/v1/models`).
 - **Persistent storage** — data lives in `~/.porttracker/data.json` (outside the repo), so it survives restarts **and** fresh deployments / re-cloned repos.
 - **Zero dependencies** — only Node's built-in `http` module; no `npm install`, no database, no framework.
 - **Minimalistic UI** — one self-contained HTML page with clean, responsive styling.
@@ -63,7 +63,7 @@ The browser talks to the server through a small JSON REST API.
 
 - `port` — integer between 1 and 65535 (required).
 - `service` — non-empty name (required).
-- `description` — free-form notes, optional. If it starts with `/` it's treated as a URL path (e.g. `/v1/models`), and clicking the port opens `http://0.0.0.0:<port><path>`.
+- `description` — free-form endpoint, optional. If it starts with `/` it's treated as a URL path (e.g. `/v1/models`), and clicking the port opens `http://0.0.0.0:<port><path>`.
 - `createdAt` / `updatedAt` — timestamps, set automatically.
 
 ### Example API calls

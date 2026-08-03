@@ -223,8 +223,8 @@
           <input id="service" type="text" required placeholder="e.g. Dev API server">
         </div>
         <div class="full">
-          <label for="description">Notes (optional)</label>
-          <textarea id="description" placeholder="What it is for, how to start it, …"></textarea>
+          <label for="description">Endpoint (optional)</label>
+          <textarea id="description" placeholder="/v1/models — a path appended when you click the port"></textarea>
         </div>
         <div class="full actions">
           <button class="primary" type="submit">Save</button>
@@ -238,7 +238,7 @@
       <h2>Current mappings</h2>
       <table>
         <thead>
-          <tr><th>Port</th><th>Service</th><th>Notes</th><th></th></tr>
+          <tr><th>Port</th><th>Service</th><th>Endpoint</th><th></th></tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -280,7 +280,7 @@
     }
 
     // Build the URL a port click should open: http://0.0.0.0:<port>
-    // plus any path stored in the notes (e.g. "/v1/models").
+    // plus any path stored in the endpoint (e.g. "/v1/models").
     // 0.0.0.0 is what works on this machine; localhost can redirect to an
     // error page in this environment, so stick with 0.0.0.0.
     function portUrl(r) {
