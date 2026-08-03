@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>porttracker</title>
+  <style>
+    :root {
+      --bg: #f4f4f4;
+      --card: #ffffff;
+      --text: #1a1a1a;
+      --muted: #6b6b6b;
+      --accent: #2b6cb0;
+      --danger: #c53030;
+      --border: #e2e2e2;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem 1rem;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    header { margin-bottom: 1.5rem; }
+    h1 { font-size: 1.6rem; font-weight: 600; }
+    p.tag { color: var(--muted); font-size: 0.9rem; margin-top: 0.25rem; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .card h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.75rem; }
+
+    form { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    label { font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 0.25rem; }
+    .full { grid-column: 1 / -1; }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font: inherit;
+      background: #fff;
+    }
+    textarea { resize: vertical; min-height: 3rem; }
+    .actions { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
+    button {
+      font: inherit;
+      padding: 0.5rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card);
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button.danger { color: var(--danger); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    th, td { text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--border); }
+    th { font-weight: 600; color: var(--muted); }
+    td.port { font-variant-numeric: tabular-nums; font-weight: 600; }
+    td.protocol { color: var(--muted); }
+    .empty { color: var(--muted); font-size: 0.9rem; padding: 1rem 0; text-align: center; }
+    .err { color: var(--danger); font-size: 0.9rem; margin-top: 0.5rem; }
+    .msg { color: var(--accent); font-size: 0.9rem; margin-top: 0.5rem; }
+    .row-actions button { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+
+    @media (max-width: 520px) { form { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>porttracker</h1>
+      <p class="tag">Remember which service runs on which local host port.</p>
+    </header>
+
+    <div class="card">
+      <h2 id="formTitle">Add a port mapping</h2>
+      <form id="form">
+        <div>
+          <label for="port">Port</label>
+          <input id="port" type="number" min="1" max="65535" required placeholder="e.g. 8080">
+        </div>
+        <div>
+          <label for="protocol">Protocol</label>
+          <select id="protocol">
+            <option value="TCP">TCP</option>
+            <option value="UDP">UDP</option>
+          </select>
+        </div>
+        <div class="full">
+          <label for="service">Service</label>
+          <input id="service" type="text" required placeholder="e.g. Dev API server">
+        </div>
+        <div class="full">
+          <label for="description">Notes (optional)</label>
+          <textarea id="description" placeholder="What it is for, how to start it, …"></textarea>
+        </div>
+        <div class="full actions">
+          <button class="primary" type="submit">Save</button>
+          <button type="button" id="resetBtn" hidden>Cancel edit</button>
+        </div>
+      </form>
+      <div id="feedback"></div>
+    </div>
+
+    <div class="card">
+      <h2>Current mappings</h2>
+      <table>
+        <thead>
+          <tr><th>Port</th><th>Service</th><th>Protocol</th><th>Notes</th><th></th></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="empty" class="empty" hidden>Nothing recorded yet — add your first port above.</div>
+    </div>
+  </div>
+
+  <script>
+    const api = '/api/ports';
+    const tbody = document.getElementById('tbody');
+    const empty = document.getElementById('empty');
+    const form = document.getElementById('form');
+    const feedback = document.getElementById('feedback');
+    const formTitle = document.getElementById('formTitle');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let editingId = null;
+
+    async function request(method, path, body) {
+      const res = await fetch(path, {
+        method,
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `request failed (${res.status})`);
+      return data;
+    }
+
+    function show(msg, isErr = false) {
+      feedback.innerHTML = '';
+      const el = document.createElement('div');
+      el.className = isErr ? 'err' : 'msg';
+      el.textContent = msg;
+      feedback.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }
+
+    async function render() {
+      const records = await request('GET', api);
+      tbody.innerHTML = '';
+      empty.hidden = records.length > 0;
+
+      for (const r of records.sort((a, b) => a.port - b.port)) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="port">${r.port}</td>
+          <td>${escapeHtml(r.service)}</td>
+          <td class="protocol">${r.protocol}</td>
+          <td>${escapeHtml(r.description || '')}</td>`;
+
+        const td = document.createElement('td');
+        td.className = 'row-actions';
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.onclick = () => startEdit(r);
+        const delBtn = document.createElement('button');
+        delBtn.className = 'danger';
+        delBtn.textContent = 'Delete';
+        delBtn.onclick = () => confirmDelete(r);
+        td.append(editBtn, delBtn);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) =>
+        ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' })[c]);
+    }
+
+    function resetForm() {
+      form.reset();
+      editingId = null;
+      formTitle.textContent = 'Add a port mapping';
+      resetBtn.hidden = true;
+      document.getElementById('port').focus();
+    }
+
+    function startEdit(r) {
+      editingId = r.id;
+      formTitle.textContent = 'Edit mapping';
+      document.getElementById('port').value = r.port;
+      document.getElementById('protocol').value = r.protocol;
+      document.getElementById('service').value = r.service;
+      document.getElementById('description').value = r.description || '';
+      resetBtn.hidden = false;
+      document.getElementById('service').focus();
+    }
+
+    async function confirmDelete(r) {
+      if (!confirm(`Delete "${r.service}" on port ${r.port}?`)) return;
+      await request('DELETE', `${api}/${r.id}`);
+      show(`Deleted port ${r.port} (${r.service})`);
+      resetForm();
+      render();
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        port: Number(document.getElementById('port').value),
+        protocol: document.getElementById('protocol').value,
+        service: document.getElementById('service').value.trim(),
+        description: document.getElementById('description').value.trim(),
+      };
+      try {
+        if (editingId) {
+          await request('PUT', `${api}/${editingId}`, payload);
+          show(`Updated port ${payload.port}`);
+        } else {
+          await request('POST', api, payload);
+          show(`Added port ${payload.port} (${payload.service})`);
+        }
+        resetForm();
+        render();
+      } catch (err) {
+        show(err.message, true);
+      }
+    });
+
+    resetBtn.addEventListener('click', resetForm);
+
+    render().catch((err) => show(err.message, true));
+  </script>
+</body>
+</html>
