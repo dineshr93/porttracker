@@ -4,6 +4,10 @@ A tiny, minimalistic web app that remembers **which service runs on which port**
 
 It's a small CRUD app: add, view, edit, and delete port→service mappings from a single clean page.
 
+<p align="center">
+  <img src="screenshot.png" alt="porttracker screenshot" width="720">
+</p>
+
 ## Features
 
 - **Create** — record a port, service name, and an optional endpoint. The add form is tucked behind a themed **+** button in the top-right of the header; click it to toggle the form open/closed (the icon flips to **×** when open).
