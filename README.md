@@ -11,6 +11,7 @@ It's a small CRUD app: add, view, edit, and delete port→service mappings from 
 - **Update** — edit any mapping inline.
 - **Delete** — remove a mapping with a confirmation prompt.
 - **Click to open** — clicking a port number opens the live site at `http://0.0.0.0:<port>`, plus the path in the endpoint if it starts with `/` (e.g. `/v1/models` → `http://0.0.0.0:8888/v1/models`).
+- **Search** — a magnifier button beside the **+** toggles a search bar that filters the list live by port, service, or endpoint.
 - **Persistent storage** — data lives in `~/.porttracker/data.json` (outside the repo), so it survives restarts **and** fresh deployments / re-cloned repos.
 - **Zero dependencies** — only Node's built-in `http` module; no `npm install`, no database, no framework.
 - **Minimalistic UI** — one self-contained HTML page with clean, responsive styling.

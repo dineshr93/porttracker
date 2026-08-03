@@ -44,6 +44,7 @@
       align-items: center;
       gap: 1rem;
     }
+    .header-actions { display: flex; align-items: center; gap: 0.75rem; }
     .logo-row { display: flex; align-items: center; gap: 0.75rem; }
     .logo {
       width: 34px; height: 34px; border-radius: 9px;
@@ -84,6 +85,20 @@
       flex-shrink: 0;
     }
     .card[hidden] { display: none; }
+
+    .search-card { padding: 0.45rem 0.9rem; margin-bottom: 1rem; }
+    .search-bar { display: flex; align-items: center; gap: 0.6rem; color: var(--muted); }
+    .search-bar svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .search-bar input {
+      flex: 1;
+      padding: 0.55rem 0.4rem;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+    }
+    .search-bar input:focus { outline: none; }
+    .search-bar input::placeholder { color: #565b63; }
 
     /* Cards */
     .card {
@@ -206,10 +221,22 @@
         </div>
         <p class="tag">Remember which service runs on which local host port.</p>
       </div>
-      <button id="addBtn" class="add-btn" title="Add a port mapping" aria-label="Add a port mapping">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
+      <div class="header-actions">
+        <button id="searchBtn" class="add-btn" title="Search mappings" aria-label="Search mappings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        </button>
+        <button id="addBtn" class="add-btn" title="Add a port mapping" aria-label="Add a port mapping">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
     </header>
+
+    <div class="card search-card" id="searchCard" hidden>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input id="searchInput" type="search" placeholder="Search by port, service, or endpoint…">
+      </div>
+    </div>
 
     <div class="card" id="formCard" hidden>
       <h2 id="formTitle">Add a port mapping</h2>
@@ -256,8 +283,12 @@
     const resetBtn = document.getElementById('resetBtn');
     const addBtn = document.getElementById('addBtn');
     const formCard = document.getElementById('formCard');
+    const searchBtn = document.getElementById('searchBtn');
+    const searchCard = document.getElementById('searchCard');
+    const searchInput = document.getElementById('searchInput');
 
     let editingId = null;
+    let allRecords = [];
 
     async function request(method, path, body) {
       const res = await fetch(path, {
@@ -291,9 +322,24 @@
     }
 
     async function render() {
-      const records = await request('GET', api);
+      allRecords = await request('GET', api);
+      const q = searchInput.value.trim().toLowerCase();
+      const records = allRecords.filter((r) =>
+        !q ||
+        String(r.port).includes(q) ||
+        (r.service || '').toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q)
+      );
       tbody.innerHTML = '';
-      empty.hidden = records.length > 0;
+      if (allRecords.length === 0) {
+        empty.hidden = false;
+        empty.textContent = 'Nothing recorded yet — click the + button to add your first port.';
+      } else if (records.length === 0) {
+        empty.hidden = false;
+        empty.textContent = 'No mappings match your search.';
+      } else {
+        empty.hidden = true;
+      }
 
       for (const r of records.sort((a, b) => a.port - b.port)) {
         const tr = document.createElement('tr');
@@ -358,6 +404,25 @@
       else hideAddForm();
     }
 
+    // Search button: magnifier when collapsed, '×' when the search bar is open.
+    const SEARCH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>';
+
+    function updateSearchBtn() {
+      const showing = !searchCard.hidden;
+      searchBtn.innerHTML = showing ? CLOSE_SVG : SEARCH_SVG;
+      searchBtn.title = showing ? 'Close search' : 'Search mappings';
+      searchBtn.setAttribute('aria-label', showing ? 'Close search' : 'Search mappings');
+    }
+
+    function toggleSearch() {
+      const showing = searchCard.hidden;
+      searchCard.hidden = !showing;
+      updateSearchBtn();
+      if (showing) {
+        searchInput.focus();
+      }
+    }
+
     function startEdit(r) {
       formCard.hidden = false;
       editingId = r.id;
@@ -407,8 +472,11 @@
     });
 
     addBtn.addEventListener('click', toggleAddForm);
+    searchBtn.addEventListener('click', toggleSearch);
+    searchInput.addEventListener('input', render);
 
     updateAddBtn();
+    updateSearchBtn();
 
     render().catch((err) => show(err.message, true));
   </script>
