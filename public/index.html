@@ -241,10 +241,12 @@
       setTimeout(() => el.remove(), 4000);
     }
 
-    // Build the URL a port click should open: http://0.0.0.0:<port>
+    // Build the URL a port click should open: http://localhost:<port>
     // plus any path stored in the notes (e.g. "/v1/models").
+    // Use localhost (or 127.0.0.1) rather than 0.0.0.0: browsers treat
+    // 0.0.0.0 unreliably and may fail to connect, showing an error page.
     function portUrl(r) {
-      const base = `http://0.0.0.0:${r.port}`;
+      const base = `http://localhost:${r.port}`;
       const desc = (r.description || '').trim();
       if (desc.startsWith('/')) return base + desc;
       return base;

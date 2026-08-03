@@ -10,7 +10,7 @@ It's a small CRUD app: add, view, edit, and delete port→service mappings from 
 - **Read** — see all current mappings in a table, sorted by port.
 - **Update** — edit any mapping inline.
 - **Delete** — remove a mapping with a confirmation prompt.
-- **Click to open** — clicking a port number opens the live site at `http://0.0.0.0:<port>`, plus the path in the notes if it starts with `/` (e.g. `/v1/models` → `http://0.0.0.0:8888/v1/models`).
+- **Click to open** — clicking a port number opens the live site at `http://localhost:<port>`, plus the path in the notes if it starts with `/` (e.g. `/v1/models` → `http://localhost:8888/v1/models`).
 - **Persistent storage** — data lives in `data.json` on disk, so it survives restarts.
 - **Zero dependencies** — only Node's built-in `http` module; no `npm install`, no database, no framework.
 - **Minimalistic UI** — one self-contained HTML page with clean, responsive styling.
@@ -63,7 +63,7 @@ The browser talks to the server through a small JSON REST API.
 
 - `port` — integer between 1 and 65535 (required).
 - `service` — non-empty name (required).
-- `description` — free-form notes, optional. If it starts with `/` it's treated as a URL path (e.g. `/v1/models`), and clicking the port opens `http://0.0.0.0:<port><path>`.
+- `description` — free-form notes, optional. If it starts with `/` it's treated as a URL path (e.g. `/v1/models`), and clicking the port opens `http://localhost:<port><path>`.
 - `createdAt` / `updatedAt` — timestamps, set automatically.
 
 ### Example API calls
