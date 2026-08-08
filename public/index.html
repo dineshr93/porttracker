@@ -198,6 +198,17 @@
     .row-actions { white-space: nowrap; }
     .row-actions button { padding: 0.28rem 0.55rem; font-size: 0.8rem; }
 
+    /* Status dots + table toolbar */
+    td.status { width: 3.4rem; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; }
+    .dot.up { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.55); }
+    .dot.down { background: var(--danger); box-shadow: 0 0 8px rgba(248,113,113,0.55); }
+    .dot.unknown { background: #565b63; }
+    .table-toolbar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.9rem; flex-wrap: wrap; }
+    .table-toolbar select { width: auto; padding: 0.35rem 0.55rem; }
+    .table-toolbar .spacer { flex: 1; }
+    .summary { color: var(--muted); font-size: 0.85rem; }
+
     /* Feedback */
     .err { color: var(--danger); font-size: 0.9rem; margin-top: 0.75rem; }
     .msg { color: var(--green); font-size: 0.9rem; margin-top: 0.75rem; }
@@ -251,7 +262,7 @@
         </div>
         <div class="full">
           <label for="description">Endpoint (optional)</label>
-          <textarea id="description" placeholder="/v1/models — a path appended when you click the port"></textarea>
+          <textarea id="description" placeholder="/v1/models (a path) or https://host:port (a full URL) — opened when you click the port"></textarea>
         </div>
         <div class="full actions">
           <button class="primary" type="submit">Save</button>
@@ -263,9 +274,24 @@
 
     <div class="card table-card">
       <h2>Current mappings</h2>
+      <div class="table-toolbar">
+        <select id="sortSel" title="Sort order">
+          <option value="port">Sort: port</option>
+          <option value="service">Sort: service</option>
+        </select>
+        <select id="statusSel" title="Filter by status">
+          <option value="all">All statuses</option>
+          <option value="up">Running only</option>
+          <option value="down">Down only</option>
+        </select>
+        <span class="spacer"></span>
+        <span class="summary" id="summary"></span>
+        <button class="ghost" id="exportBtn" title="Download mappings as JSON">Export</button>
+        <button class="ghost" id="importBtn" title="Restore mappings from a JSON file">Import</button>
+      </div>
       <table>
         <thead>
-          <tr><th>Port</th><th>Service</th><th>Endpoint</th><th></th></tr>
+          <tr><th>Status</th><th>Port</th><th>Service</th><th>Endpoint</th><th></th></tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -273,8 +299,11 @@
     </div>
   </div>
 
-  <script>
+  <input type="file" id="importFile" accept=".json,application/json" hidden>
+    <script>
     const api = '/api/ports';
+    const exportApi = '/api/export';
+    const importApi = '/api/import';
     const tbody = document.getElementById('tbody');
     const empty = document.getElementById('empty');
     const form = document.getElementById('form');
@@ -286,9 +315,17 @@
     const searchBtn = document.getElementById('searchBtn');
     const searchCard = document.getElementById('searchCard');
     const searchInput = document.getElementById('searchInput');
+    const sortSel = document.getElementById('sortSel');
+    const statusSel = document.getElementById('statusSel');
+    const summary = document.getElementById('summary');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const importFile = document.getElementById('importFile');
 
     let editingId = null;
     let allRecords = [];
+    let statusMap = {};   // port -> true (running) | false (down)
+    let probing = false;
 
     async function request(method, path, body) {
       const res = await fetch(path, {
@@ -310,47 +347,135 @@
       setTimeout(() => el.remove(), 4000);
     }
 
-    // Build the URL a port click should open: http://0.0.0.0:<port>
-    // plus any path stored in the endpoint (e.g. "/v1/models").
+    // Build the URL a port click should open:
+    //  - a full http(s):// endpoint is used as-is (feature: full URLs)
+    //  - a path starting with "/" is appended to http://0.0.0.0:<port>
+    //  - otherwise just http://0.0.0.0:<port>
     // 0.0.0.0 is what works on this machine; localhost can redirect to an
     // error page in this environment, so stick with 0.0.0.0.
     function portUrl(r) {
       const base = `http://0.0.0.0:${r.port}`;
       const desc = (r.description || '').trim();
+      if (/^https?:\/\//i.test(desc)) return desc;
       if (desc.startsWith('/')) return base + desc;
       return base;
     }
 
-    async function render() {
+    // Probe every record's port once, in bulk, then refresh the table.
+    // A sequence number makes concurrent probes "latest-wins": if records
+    // change while a probe is in flight, that older result is discarded.
+    let probeSeq = 0;
+    // Status is probed from the BROWSER, not the server. The browser runs on
+    // the host machine, so it can reach the actual services — which also
+    // works when the app itself is deployed in Docker (the container's own
+    // loopback cannot see host services). A fetch to http://host:port with
+    // mode 'no-cors' resolves for any HTTP response (even 404) and rejects on
+    // connection refusal, which distinguishes "open" from "down".
+    function probeHost() {
+      const hn = window.location.hostname;
+      return (hn === '0.0.0.0' || hn === '::' || hn === '') ? '127.0.0.1' : hn;
+    }
+    async function probeHostPort(host, port, timeout = 1200) {
+      const url = `http://${host}:${port}/`;
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), timeout);
+      try {
+        await fetch(url, { mode: 'no-cors', cache: 'no-store', signal: ac.signal });
+        return true;
+      } catch {
+        return false;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    async function probePort(port) {
+      const primary = probeHost();
+      if (await probeHostPort(primary, port)) return true;
+      if (primary !== '127.0.0.1' && await probeHostPort('127.0.0.1', port)) return true;
+      return false;
+    }
+    async function refreshStatuses() {
+      const seq = ++probeSeq;
+      const records = allRecords;
+      if (!records.length) { statusMap = {}; render(); return; }
+      probing = true;
+      const results = await Promise.all(records.map(async (r) => {
+        const up = await probePort(r.port);
+        return { port: r.port, up };
+      }));
+      if (seq !== probeSeq) return;
+      statusMap = {};
+      for (const r of results) statusMap[r.port] = r.up;
+      probing = false;
+      render();
+    }
+
+    async function loadRecords() {
       allRecords = await request('GET', api);
+      await refreshStatuses();
+    }
+
+    function render() {
       const q = searchInput.value.trim().toLowerCase();
-      const records = allRecords.filter((r) =>
-        !q ||
-        String(r.port).includes(q) ||
-        (r.service || '').toLowerCase().includes(q) ||
-        (r.description || '').toLowerCase().includes(q)
-      );
+      const statusFilter = statusSel.value;
+      const sortKey = sortSel.value;
+
+      let records = allRecords.filter((r) => {
+        const matchesQ =
+          !q ||
+          String(r.port).includes(q) ||
+          (r.service || '').toLowerCase().includes(q) ||
+          (r.description || '').toLowerCase().includes(q);
+        if (!matchesQ) return false;
+        if (statusFilter === 'up') return statusMap[r.port] === true;
+        if (statusFilter === 'down') return statusMap[r.port] === false;
+        return true;
+      });
+
+      records = [...records].sort((a, b) => {
+        if (sortKey === 'service') {
+          const x = (a.service || '').toLowerCase();
+          const y = (b.service || '').toLowerCase();
+          return x.localeCompare(y) || a.port - b.port;
+        }
+        return a.port - b.port;
+      });
+
+      // Header summary: totals + running/down counts.
+      const running = allRecords.filter((r) => statusMap[r.port] === true).length;
+      const down = allRecords.filter((r) => statusMap[r.port] === false).length;
+      summary.textContent = allRecords.length
+        ? `${allRecords.length} total · ${running} running · ${down} down`
+        : '';
+
       tbody.innerHTML = '';
       if (allRecords.length === 0) {
         empty.hidden = false;
         empty.textContent = 'Nothing recorded yet — click the + button to add your first port.';
       } else if (records.length === 0) {
         empty.hidden = false;
-        empty.textContent = 'No mappings match your search.';
+        empty.textContent = 'No mappings match your search/filter.';
       } else {
         empty.hidden = true;
       }
 
-      for (const r of records.sort((a, b) => a.port - b.port)) {
+      for (const r of records) {
         const tr = document.createElement('tr');
         const url = portUrl(r);
+        const up = statusMap[r.port];
+        const dotClass = up === undefined ? 'unknown' : (up ? 'up' : 'down');
+        const dotTitle = up === undefined ? 'checking…' : (up ? 'running' : 'down');
         tr.innerHTML = `
+          <td class="status"><span class="dot ${dotClass}" title="${dotTitle}"></span></td>
           <td class="port"><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${r.port}</a></td>
           <td>${escapeHtml(r.service)}</td>
           <td>${escapeHtml(r.description || '')}</td>`;
 
         const td = document.createElement('td');
         td.className = 'row-actions';
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = 'Copy';
+        copyBtn.onclick = () => copyUrl(r);
         const editBtn = document.createElement('button');
         editBtn.textContent = 'Edit';
         editBtn.onclick = () => startEdit(r);
@@ -358,7 +483,7 @@
         delBtn.className = 'danger';
         delBtn.textContent = 'Delete';
         delBtn.onclick = () => confirmDelete(r);
-        td.append(editBtn, delBtn);
+        td.append(copyBtn, editBtn, delBtn);
         tr.appendChild(td);
         tbody.appendChild(tr);
       }
@@ -367,6 +492,63 @@
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, (c) =>
         ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' })[c]);
+    }
+
+    async function copyText(text) {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch {}
+      // Fallback for non-secure contexts.
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    }
+
+    async function copyUrl(r) {
+      const url = portUrl(r);
+      const ok = await copyText(url);
+      show(ok ? `Copied ${url}` : 'Copy failed', !ok);
+    }
+
+    async function exportData() {
+      try {
+        const res = await fetch(exportApi);
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `porttracker-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+        show('Exported your mappings');
+      } catch (err) {
+        show('Export failed: ' + err.message, true);
+      }
+    }
+
+    async function importData() {
+      const file = importFile.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        let data;
+        try { data = JSON.parse(text); } catch { throw new Error('import file is not valid JSON'); }
+        const records = Array.isArray(data?.records) ? data.records : data;
+        const res = await request('POST', importApi, { records });
+        show(`Imported ${res.count} mappings`);
+        importFile.value = '';
+        await loadRecords();
+      } catch (err) {
+        show(err.message || 'Import failed', true);
+      }
     }
 
     function resetForm() {
@@ -388,7 +570,6 @@
       updateAddBtn();
     }
 
-    // Icons for the toggle button: '+' when the form is hidden, '×' when it's open.
     const PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
     const CLOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6l-12 12"/></svg>';
 
@@ -404,7 +585,6 @@
       else hideAddForm();
     }
 
-    // Search button: magnifier when collapsed, '×' when the search bar is open.
     const SEARCH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>';
 
     function updateSearchBtn() {
@@ -418,9 +598,7 @@
       const showing = searchCard.hidden;
       searchCard.hidden = !showing;
       updateSearchBtn();
-      if (showing) {
-        searchInput.focus();
-      }
+      if (showing) searchInput.focus();
     }
 
     function startEdit(r) {
@@ -440,7 +618,7 @@
       show(`Deleted port ${r.port} (${r.service})`);
       resetForm();
       hideAddForm();
-      render();
+      loadRecords();
     }
 
     form.addEventListener('submit', async (e) => {
@@ -460,7 +638,7 @@
         }
         resetForm();
         hideAddForm();
-        render();
+        loadRecords();
       } catch (err) {
         show(err.message, true);
       }
@@ -474,11 +652,21 @@
     addBtn.addEventListener('click', toggleAddForm);
     searchBtn.addEventListener('click', toggleSearch);
     searchInput.addEventListener('input', render);
+    sortSel.addEventListener('change', render);
+    statusSel.addEventListener('change', render);
+    exportBtn.addEventListener('click', exportData);
+    importBtn.addEventListener('click', () => importFile.click());
+    importFile.addEventListener('change', importData);
+
+    // Auto-refresh statuses every 10s so the dots stay current.
+    setInterval(async () => {
+      if (allRecords.length) await refreshStatuses();
+    }, 10000);
 
     updateAddBtn();
     updateSearchBtn();
 
-    render().catch((err) => show(err.message, true));
-  </script>
+    loadRecords().catch((err) => show(err.message, true));
+  </script></script>
 </body>
 </html>

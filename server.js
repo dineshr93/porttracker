@@ -113,6 +113,8 @@ async function handleApi(req, res, url) {
     if (errs.length) return sendJson(res, 400, { error: errs.join('; ') });
 
     const records = await load();
+    const dup = records.find((r) => r.port === Number(body.port));
+    if (dup) return sendJson(res, 400, { error: `port ${body.port} is already used by "${dup.service}"` });
     const record = {
       id: nextId(records),
       port: Number(body.port),
@@ -136,7 +138,11 @@ async function handleApi(req, res, url) {
     const idx = records.findIndex((r) => r.id === id);
     if (idx === -1) return sendJson(res, 404, { error: 'not found' });
 
-    if (body.port !== undefined) records[idx].port = Number(body.port);
+    if (body.port !== undefined) {
+      const dup = records.find((r) => r.id !== id && r.port === Number(body.port));
+      if (dup) return sendJson(res, 400, { error: `port ${body.port} is already used by "${dup.service}"` });
+      records[idx].port = Number(body.port);
+    }
     if (body.service !== undefined) records[idx].service = body.service.trim();
     if (body.description !== undefined) records[idx].description = body.description.trim();
     records[idx].updatedAt = new Date().toISOString();
@@ -154,6 +160,59 @@ async function handleApi(req, res, url) {
     const [removed] = records.splice(idx, 1);
     await save(records);
     return sendJson(res, 200, removed);
+  }
+
+  // GET /api/export — download the full records list as a JSON file.
+  if (method === 'GET' && parts.join('/') === 'api/export') {
+    const records = await load();
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': `attachment; filename="porttracker-export.json"`,
+    });
+    res.end(JSON.stringify({ records }, null, 2));
+    return;
+  }
+
+  // POST /api/import — replace the stored records with the uploaded ones.
+  // Body: { "records": [...] }. Validates each record and dedupes ports.
+  if (method === 'POST' && parts.join('/') === 'api/import') {
+    const body = await readBody(req);
+    const incoming = Array.isArray(body?.records) ? body.records : null;
+    if (!incoming) return sendJson(res, 400, { error: 'expected { records: [...] }' });
+
+    const errs = [];
+    const seenPorts = new Set();
+    const clean = [];
+    for (const rec of incoming) {
+      if (!Number.isInteger(Number(rec.port)) || Number(rec.port) < 1 || Number(rec.port) > 65535) {
+        errs.push(`record ${rec.service || '(unnamed)'}: port must be an integer between 1 and 65535`);
+        continue;
+      }
+      if (typeof rec.service !== 'string' || !rec.service.trim()) {
+        errs.push(`record on port ${rec.port}: service must be a non-empty string`);
+        continue;
+      }
+      const port = Number(rec.port);
+      if (seenPorts.has(port)) {
+        errs.push(`duplicate port ${port} in import`);
+        continue;
+      }
+      seenPorts.add(port);
+      clean.push({
+        port,
+        service: rec.service.trim(),
+        description: typeof rec.description === 'string' ? rec.description.trim() : '',
+        createdAt: rec.createdAt || new Date().toISOString(),
+        updatedAt: rec.updatedAt || new Date().toISOString(),
+      });
+    }
+    if (errs.length) return sendJson(res, 400, { error: errs.join('; ') });
+
+    let maxId = 0;
+    for (const r of clean) maxId = Math.max(maxId, Number(r.id) || 0);
+    const records = clean.map((r, i) => ({ ...r, id: maxId + i + 1 }));
+    await save(records);
+    return sendJson(res, 200, { count: records.length });
   }
 
   return sendJson(res, 405, { error: `unsupported ${method} ${url.pathname}` });

@@ -16,6 +16,12 @@ It's a small CRUD app: add, view, edit, and delete port→service mappings from 
 - **Delete** — remove a mapping with a confirmation prompt.
 - **Click to open** — clicking a port number opens the live site at `http://0.0.0.0:<port>`, plus the path in the endpoint if it starts with `/` (e.g. `/v1/models` → `http://0.0.0.0:8888/v1/models`).
 - **Search** — a magnifier button beside the **+** toggles a search bar that filters the list live by port, service, or endpoint.
+- **Live status** — a colored dot per row shows whether the port is actually **running** (green) or **down** (red); it probes each port **from your browser** and auto-refreshes every 10s. A header summary shows totals (e.g. `3 total · 2 running · 1 down`). Probing from the browser means it works even when the app is deployed in Docker — the browser runs on the host where the services live.
+- **Filter & sort** — filter the table by status (running / down) and sort by port or service name.
+- **Copy** — one click copies the openable URL (`http://0.0.0.0:<port>` + endpoint) to your clipboard.
+- **Export / Import** — download all mappings as a JSON file, or restore from a previously exported file.
+- **Full-URL endpoints** — the endpoint field can be a path (`/v1/models`) **or** a full `http(s)://` URL; clicking the port opens whichever it is.
+- **Duplicate protection** — the server rejects adding/editing a mapping whose port is already in use.
 - **Persistent storage** — data lives in `~/.porttracker/data.json` (outside the repo), so it survives restarts **and** fresh deployments / re-cloned repos.
 - **Zero dependencies** — only Node's built-in `http` module; no `npm install`, no database, no framework.
 - **Minimalistic UI** — one self-contained HTML page with clean, responsive styling.
@@ -52,6 +58,8 @@ The browser talks to the server through a small JSON REST API.
 | `POST`   | `/api/ports`        | Create a mapping |
 | `PUT`    | `/api/ports/:id`    | Update a mapping |
 | `DELETE` | `/api/ports/:id`    | Delete a mapping |
+| `GET`    | `/api/export`       | Download all mappings as a JSON file |
+| `POST`   | `/api/import`       | Restore mappings from `{ "records": [...] }` |
 
 **Record shape** (`~/.porttracker/data.json` stores an array under `{ "records": [...] }`):
 
