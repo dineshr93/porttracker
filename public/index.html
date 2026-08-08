@@ -138,7 +138,7 @@
       border-color: var(--accent);
       box-shadow: 0 0 0 3px var(--accent-soft);
     }
-    textarea { resize: vertical; min-height: 3.2rem; }
+    textarea { resize: vertical; min-height: 4.5rem; }
     select option { background: #0d0f13; }
     ::placeholder { color: #565b63; }
 
@@ -213,6 +213,12 @@
     .err { color: var(--danger); font-size: 0.9rem; margin-top: 0.75rem; }
     .msg { color: var(--green); font-size: 0.9rem; margin-top: 0.75rem; }
 
+    /* Endpoints list styling */
+    .endpoints-list { line-height: 1.5; }
+    .endpoint-item { color: var(--muted); font-size: 0.85rem; }
+    .endpoint-item a { color: var(--muted); text-decoration: none; }
+    .endpoint-item a:hover { color: var(--accent); text-decoration: underline; }
+
     @media (max-width: 560px) {
       body { padding: 1.5rem 0.75rem; }
       form { grid-template-columns: 1fr; }
@@ -261,8 +267,8 @@
           <input id="service" type="text" required placeholder="e.g. Dev API server">
         </div>
         <div class="full">
-          <label for="description">Endpoint (optional)</label>
-          <textarea id="description" placeholder="/v1/models (a path) or https://host:port (a full URL) — opened when you click the port"></textarea>
+          <label for="endpoints">Endpoints (one per line)</label>
+          <textarea id="endpoints" placeholder="/v1/models&#10;/health&#10;http://external.com/dashboard"></textarea>
         </div>
         <div class="full actions">
           <button class="primary" type="submit">Save</button>
@@ -291,7 +297,7 @@
       </div>
       <table>
         <thead>
-          <tr><th>Status</th><th>Port</th><th>Service</th><th>Endpoint</th><th></th></tr>
+          <tr><th>Status</th><th>Port</th><th>Service</th><th>Endpoints</th><th></th></tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -300,7 +306,7 @@
   </div>
 
   <input type="file" id="importFile" accept=".json,application/json" hidden>
-    <script>
+  <script>
     const api = '/api/ports';
     const exportApi = '/api/export';
     const importApi = '/api/import';
@@ -325,7 +331,7 @@
     let editingId = null;
     let allRecords = [];
     let statusMap = {};   // port -> true (running) | false (down)
-    let probing = false;
+    let probeSeq = 0;
 
     async function request(method, path, body) {
       const res = await fetch(path, {
@@ -347,34 +353,19 @@
       setTimeout(() => el.remove(), 4000);
     }
 
-    // Build the URL a port click should open:
-    //  - a full http(s):// endpoint is used as-is (feature: full URLs)
-    //  - a path starting with "/" is appended to http://0.0.0.0:<port>
-    //  - otherwise just http://0.0.0.0:<port>
-    // 0.0.0.0 is what works on this machine; localhost can redirect to an
-    // error page in this environment, so stick with 0.0.0.0.
-    function portUrl(r) {
-      const base = `http://0.0.0.0:${r.port}`;
-      const desc = (r.description || '').trim();
+    function getUrl(port, endpoint) {
+      const base = `http://0.0.0.0:${port}`;
+      const desc = (endpoint || '').trim();
       if (/^https?:\/\//i.test(desc)) return desc;
       if (desc.startsWith('/')) return base + desc;
       return base;
     }
 
-    // Probe every record's port once, in bulk, then refresh the table.
-    // A sequence number makes concurrent probes "latest-wins": if records
-    // change while a probe is in flight, that older result is discarded.
-    let probeSeq = 0;
-    // Status is probed from the BROWSER, not the server. The browser runs on
-    // the host machine, so it can reach the actual services — which also
-    // works when the app itself is deployed in Docker (the container's own
-    // loopback cannot see host services). A fetch to http://host:port with
-    // mode 'no-cors' resolves for any HTTP response (even 404) and rejects on
-    // connection refusal, which distinguishes "open" from "down".
     function probeHost() {
       const hn = window.location.hostname;
       return (hn === '0.0.0.0' || hn === '::' || hn === '') ? '127.0.0.1' : hn;
     }
+
     async function probeHostPort(host, port, timeout = 1200) {
       const url = `http://${host}:${port}/`;
       const ac = new AbortController();
@@ -388,25 +379,27 @@
         clearTimeout(timer);
       }
     }
+
     async function probePort(port) {
       const primary = probeHost();
       if (await probeHostPort(primary, port)) return true;
       if (primary !== '127.0.0.1' && await probeHostPort('127.0.0.1', port)) return true;
       return false;
     }
+
     async function refreshStatuses() {
       const seq = ++probeSeq;
       const records = allRecords;
       if (!records.length) { statusMap = {}; render(); return; }
-      probing = true;
+
       const results = await Promise.all(records.map(async (r) => {
         const up = await probePort(r.port);
         return { port: r.port, up };
       }));
+
       if (seq !== probeSeq) return;
       statusMap = {};
       for (const r of results) statusMap[r.port] = r.up;
-      probing = false;
       render();
     }
 
@@ -425,7 +418,7 @@
           !q ||
           String(r.port).includes(q) ||
           (r.service || '').toLowerCase().includes(q) ||
-          (r.description || '').toLowerCase().includes(q);
+          (r.endpoints || []).some(e => e.toLowerCase().includes(q));
         if (!matchesQ) return false;
         if (statusFilter === 'up') return statusMap[r.port] === true;
         if (statusFilter === 'down') return statusMap[r.port] === false;
@@ -441,7 +434,6 @@
         return a.port - b.port;
       });
 
-      // Header summary: totals + running/down counts.
       const running = allRecords.filter((r) => statusMap[r.port] === true).length;
       const down = allRecords.filter((r) => statusMap[r.port] === false).length;
       summary.textContent = allRecords.length
@@ -461,18 +453,34 @@
 
       for (const r of records) {
         const tr = document.createElement('tr');
-        const url = portUrl(r);
         const up = statusMap[r.port];
         const dotClass = up === undefined ? 'unknown' : (up ? 'up' : 'down');
         const dotTitle = up === undefined ? 'checking…' : (up ? 'running' : 'down');
+
+        const endpointsList = document.createElement('div');
+        endpointsList.className = 'endpoints-list';
+        (r.endpoints || []).forEach(e => {
+          const item = document.createElement('div');
+          item.className = 'endpoint-item';
+          const url = getUrl(r.port, e);
+          const link = document.createElement('a');
+          link.href = escapeHtml(url);
+          link.target = '_blank';
+          link.rel = 'noopener';
+          link.textContent = escapeHtml(e);
+          item.append(link);
+          endpointsList.append(item);
+        });
+
         tr.innerHTML = `
           <td class="status"><span class="dot ${dotClass}" title="${dotTitle}"></span></td>
-          <td class="port"><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${r.port}</a></td>
+          <td class="port"><a href="http://0.0.0.0:${r.port}" target="_blank" rel="noopener">${r.port}</a></td>
           <td>${escapeHtml(r.service)}</td>
-          <td>${escapeHtml(r.description || '')}</td>`;
+        `;
+        tr.append(endpointsList);
 
-        const td = document.createElement('td');
-        td.className = 'row-actions';
+        const tdActions = document.createElement('td');
+        tdActions.className = 'row-actions';
         const copyBtn = document.createElement('button');
         copyBtn.textContent = 'Copy';
         copyBtn.onclick = () => copyUrl(r);
@@ -483,9 +491,10 @@
         delBtn.className = 'danger';
         delBtn.textContent = 'Delete';
         delBtn.onclick = () => confirmDelete(r);
-        td.append(copyBtn, editBtn, delBtn);
-        tr.appendChild(td);
-        tbody.appendChild(tr);
+        tdActions.append(copyBtn, editBtn, delBtn);
+        tr.appendChild(tdActions);
+
+        tbody.append(tr);
       }
     }
 
@@ -501,7 +510,6 @@
           return true;
         }
       } catch {}
-      // Fallback for non-secure contexts.
       const ta = document.createElement('textarea');
       ta.value = text;
       document.body.appendChild(ta);
@@ -512,7 +520,8 @@
     }
 
     async function copyUrl(r) {
-      const url = portUrl(r);
+      const firstEndpoint = r.endpoints && r.endpoints.length > 0 ? r.endpoints[0] : '';
+      const url = getUrl(r.port, firstEndpoint);
       const ok = await copyText(url);
       show(ok ? `Copied ${url}` : 'Copy failed', !ok);
     }
@@ -595,7 +604,7 @@
     }
 
     function toggleSearch() {
-      const showing = searchCard.hidden;
+      const showing = !searchCard.hidden;
       searchCard.hidden = !showing;
       updateSearchBtn();
       if (showing) searchInput.focus();
@@ -607,7 +616,7 @@
       formTitle.textContent = 'Edit mapping';
       document.getElementById('port').value = r.port;
       document.getElementById('service').value = r.service;
-      document.getElementById('description').value = r.description || '';
+      document.getElementById('endpoints').value = (r.endpoints || []).join('\n');
       resetBtn.hidden = false;
       document.getElementById('service').focus();
     }
@@ -626,7 +635,9 @@
       const payload = {
         port: Number(document.getElementById('port').value),
         service: document.getElementById('service').value.trim(),
-        description: document.getElementById('description').value.trim(),
+        endpoints: document.getElementById('endpoints').value.split('\n')
+          .map(e => e.trim())
+          .filter(Boolean),
       };
       try {
         if (editingId) {
@@ -658,7 +669,6 @@
     importBtn.addEventListener('click', () => importFile.click());
     importFile.addEventListener('change', importData);
 
-    // Auto-refresh statuses every 10s so the dots stay current.
     setInterval(async () => {
       if (allRecords.length) await refreshStatuses();
     }, 10000);
@@ -667,6 +677,6 @@
     updateSearchBtn();
 
     loadRecords().catch((err) => show(err.message, true));
-  </script></script>
+  </script>
 </body>
 </html>

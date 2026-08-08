@@ -10,17 +10,17 @@ It's a small CRUD app: add, view, edit, and delete port→service mappings from 
 
 ## Features
 
-- **Create** — record a port, service name, and an optional endpoint. The add form is tucked behind a themed **+** button in the top-right of the header; click it to toggle the form open/closed (the icon flips to **×** when open).
+- **Create** — record a port, service name, and optional endpoints (one per line in the UI). The add form is tucked behind a themed **+** button in the top-right of the header; click it to toggle the form open/closed (the icon flips to **×** when open).
 - **Read** — see all current mappings in a table, sorted by port.
 - **Update** — edit any mapping inline.
 - **Delete** — remove a mapping with a confirmation prompt.
-- **Click to open** — clicking a port number opens the live site at `http://0.0.0.0:<port>`, plus the path in the endpoint if it starts with `/` (e.g. `/v1/models` → `http://0.0.0.0:8888/v1/models`).
+- **Click to open** — clicking a port number opens the live site at `http://0.0.0.0:<port>`; clicking an endpoint opens that specific URL.
 - **Search** — a magnifier button beside the **+** toggles a search bar that filters the list live by port, service, or endpoint.
 - **Live status** — a colored dot per row shows whether the port is actually **running** (green) or **down** (red); it probes each port **from your browser** and auto-refreshes every 10s. A header summary shows totals (e.g. `3 total · 2 running · 1 down`). Probing from the browser means it works even when the app is deployed in Docker — the browser runs on the host where the services live.
 - **Filter & sort** — filter the table by status (running / down) and sort by port or service name.
-- **Copy** — one click copies the openable URL (`http://0.0.0.0:<port>` + endpoint) to your clipboard.
+- **Copy** — one click copies the first endpoint's URL (or the base URL if none exist) to your clipboard.
 - **Export / Import** — download all mappings as a JSON file, or restore from a previously exported file.
-- **Full-URL endpoints** — the endpoint field can be a path (`/v1/models`) **or** a full `http(s)://` URL; clicking the port opens whichever it is.
+- **Full-URL endpoints** — endpoints can be a path (`/v1/models`) **or** a full `http(s)://` URL.
 - **Duplicate protection** — the server rejects adding/editing a mapping whose port is already in use.
 - **Persistent storage** — data lives in `~/.porttracker/data.json` (outside the repo), so it survives restarts **and** fresh deployments / re-cloned repos.
 - **Zero dependencies** — only Node's built-in `http` module; no `npm install`, no database, no framework.
@@ -68,7 +68,7 @@ The browser talks to the server through a small JSON REST API.
   "id": 1,
   "port": 8080,
   "service": "Dev API",
-  "description": "local dev backend",
+  "endpoints": ["/v1/models", "/health"],
   "createdAt": "2026-08-03T09:46:09.306Z",
   "updatedAt": "2026-08-03T09:46:09.320Z"
 }
@@ -76,7 +76,7 @@ The browser talks to the server through a small JSON REST API.
 
 - `port` — integer between 1 and 65535 (required).
 - `service` — non-empty name (required).
-- `description` — free-form endpoint, optional. If it starts with `/` it's treated as a URL path (e.g. `/v1/models`), and clicking the port opens `http://0.0.0.0:<port><path>`.
+- `endpoints` — array of optional strings. If an endpoint starts with `/` it's treated as a URL path (e.g. `/v1/models`), and clicking it opens `http://0.0.0.0:<port><path>`.
 - `createdAt` / `updatedAt` — timestamps, set automatically.
 
 ### Example API calls
@@ -86,14 +86,10 @@ The browser talks to the server through a small JSON REST API.
 curl http://localhost:3000/api/ports
 
 # Create
-curl -X POST http://localhost:3000/api/ports \
-  -H 'Content-Type: application/json' \
-  -d '{"port":8080,"service":"Dev API","description":"local backend"}'
+curl -X POST http://localhost:3000/api/ports   -H 'Content-Type: application/json'   -d '{"port":8080,"service":"Dev API","endpoints":["/v1/models", "/health"]}'
 
 # Update
-curl -X PUT http://localhost:3000/api/ports/1 \
-  -H 'Content-Type: application/json' \
-  -d '{"service":"Dev API v2"}'
+curl -X PUT http://localhost:3000/api/ports/1   -H 'Content-Type: application/json'   -d '{"service":"Dev API v2"}'
 
 # Delete
 curl -X DELETE http://localhost:3000/api/ports/1
@@ -168,3 +164,4 @@ docker run -p 3000:3000 -e PORTTRACKERDIR=/data -v /host/dir:/data porttracker
 ## License
 
 Free to use — this is a personal utility for your own machine.
+
