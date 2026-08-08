@@ -604,10 +604,9 @@
     }
 
     function toggleSearch() {
-      const showing = !searchCard.hidden;
-      searchCard.hidden = !showing;
+      searchCard.hidden = !searchCard.hidden;
       updateSearchBtn();
-      if (showing) searchInput.focus();
+      if (!searchCard.hidden) searchInput.focus();
     }
 
     function startEdit(r) {
