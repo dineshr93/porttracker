@@ -162,7 +162,14 @@ async function handleApi(req, res, url) {
     const page = Math.max(1, Number(req.url.split('page=')[1]?.split('&')[0]) || 1);
     const limit = Math.min(200, Math.max(1, Number(req.url.split('limit=')[1]?.split('&')[0]) || 50));
     const start = (page - 1) * limit;
-    const paginated = records.slice(start, start + limit);
+    // Push favorited records to the front so they always land on page 1,
+    // then keep the rest in stable insertion order.
+    const sorted = [...records].sort((a, b) => {
+      if (a.favorite && !b.favorite) return -1;
+      if (!a.favorite && b.favorite) return 1;
+      return 0;
+    });
+    const paginated = sorted.slice(start, start + limit);
     return sendJson(res, 200, { records: paginated, total: records.length, page, limit });
   }
 
