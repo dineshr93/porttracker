@@ -12,6 +12,27 @@ const DATA_DIR = process.env.PORTTRACKERDIR
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
 const PORT = Number(process.env.PORT || 3000);
 
+// --- Scan host (for port probing) -------------------------------------
+const SCAN_HOST = process.env.SCAN_HOST || "127.0.0.1";
+
+// --- Undo (in-memory, session-only) ------------------------------------
+let lastDeleted = null;
+
+
+// --- Port probing -----------------------------------------------------
+import { createConnection } from "node:net";
+
+function probePort(port, timeout = 1200) {
+  return new Promise((resolve) => {
+    const socket = createConnection({ port, host: SCAN_HOST }, () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.setTimeout(timeout);
+    socket.on("timeout", () => { socket.destroy(); resolve(false); });
+    socket.on("error", () => { resolve(false); });
+  });
+}
 // --- Storage -----------------------------------------------------------
 async function load() {
   try {
@@ -87,7 +108,21 @@ function validate(body, partial = false) {
       errs.push('endpoints must be an array of strings');
     } else if (!body.endpoints.every(e => typeof e === 'string')) {
       errs.push('each endpoint must be a string');
+    } else {
+      for (const e of body.endpoints) {
+        const trimmed = e.trim();
+        if (trimmed && !/^(\/|https?:\/\/)/i.test(trimmed)) {
+          errs.push('each endpoint must start with "/" or be a full URL (http/https)');
+          break;
+        }
+      }
     }
+  }
+  if (body.notes !== undefined && typeof body.notes !== 'string') {
+    errs.push('notes must be a string');
+  }
+  if (body.favorite !== undefined && typeof body.favorite !== 'boolean') {
+    errs.push('favorite must be a boolean');
   }
   if (!partial && body.port === undefined && body.service === undefined) {
     errs.push('port and service are required');
@@ -124,7 +159,11 @@ async function handleApi(req, res, url) {
   // GET /api/ports
   if (method === 'GET' && parts.join('/') === 'api/ports') {
     const records = await load();
-    return sendJson(res, 200, records);
+    const page = Math.max(1, Number(req.url.split('page=')[1]?.split('&')[0]) || 1);
+    const limit = Math.min(200, Math.max(1, Number(req.url.split('limit=')[1]?.split('&')[0]) || 50));
+    const start = (page - 1) * limit;
+    const paginated = records.slice(start, start + limit);
+    return sendJson(res, 200, { records: paginated, total: records.length, page, limit });
   }
 
   // POST /api/ports
@@ -150,6 +189,8 @@ async function handleApi(req, res, url) {
       port: Number(body.port),
       service: body.service.trim(),
       endpoints,
+      notes: typeof body.notes === 'string' ? body.notes.trim() : '',
+      favorite: body.favorite === true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -182,6 +223,8 @@ async function handleApi(req, res, url) {
       // Support legacy 'description' in PUT
       records[idx].endpoints = body.description ? [body.description.trim()] : [];
     }
+    if (body.notes !== undefined) records[idx].notes = typeof body.notes === 'string' ? body.notes.trim() : '';
+    if (body.favorite !== undefined) records[idx].favorite = body.favorite === true;
 
     records[idx].updatedAt = new Date().toISOString();
 
@@ -197,6 +240,7 @@ async function handleApi(req, res, url) {
     if (idx === -1) return sendJson(res, 404, { error: 'not found' });
     const [removed] = records.splice(idx, 1);
     await save(records);
+    lastDeleted = { record: removed, deletedAt: new Date().toISOString() };
     return sendJson(res, 200, removed);
   }
 
@@ -250,6 +294,8 @@ async function handleApi(req, res, url) {
         port,
         service: rec.service.trim(),
         endpoints,
+        notes: typeof rec.notes === 'string' ? rec.notes.trim() : '',
+        favorite: rec.favorite === true,
         createdAt: rec.createdAt || new Date().toISOString(),
         updatedAt: rec.updatedAt || new Date().toISOString(),
       });
@@ -268,6 +314,66 @@ async function handleApi(req, res, url) {
     const records = clean.map((r, i) => ({ ...r, id: maxId + i + 1 }));
     await save(records);
     return sendJson(res, 200, { count: records.length });
+  }
+
+  // GET /health
+  if (method === 'GET' && parts.join('/') === 'health') {
+    const uptime = process.uptime();
+    const records = await load();
+    return sendJson(res, 200, { status: 'ok', uptime: Math.floor(uptime), records: records.length });
+  }
+
+  // POST /api/ports/scan — scan a port range and return open ports
+  if (method === 'POST' && parts.join('/') === 'api/ports/scan') {
+    const body = await readBody(req);
+    const from = Math.max(1, Math.min(65535, Number(body?.from) || 1));
+    const to = Math.max(1, Math.min(65535, Number(body?.to) || 65535));
+    if (from > to) return sendJson(res, 400, { error: 'from must be <= to' });
+
+    const records = await load();
+    const existingPorts = new Set(records.map(r => r.port));
+
+    const open = [];
+    // Scan in batches to avoid overwhelming the system
+    const batchSize = 50;
+    for (let start = from; start <= to; start += batchSize) {
+      const end = Math.min(start + batchSize - 1, to);
+      const batch = [];
+      for (let p = start; p <= end; p++) {
+        batch.push(p);
+      }
+      const results = await Promise.all(batch.map(async (p) => {
+        const up = await probePort(p);
+        return { port: p, up };
+      }));
+      for (const r of results) {
+        if (r.up) {
+          const match = records.find(rec => rec.port === r.port);
+          open.push({
+            port: r.port,
+            service: match ? match.service : null,
+            known: !!match,
+          });
+        }
+      }
+    }
+    return sendJson(res, 200, { open, scanned: { from, to } });
+  }
+
+  // POST /api/ports/undo — restore the most recently deleted record
+  if (method === 'POST' && parts.join('/') === 'api/ports/undo') {
+    if (!lastDeleted) return sendJson(res, 404, { error: 'nothing to undo' });
+    const record = lastDeleted.record;
+    // Re-assign a fresh id to avoid collisions
+    const allRecords = await load();
+    const maxId = allRecords.reduce((m, r) => Math.max(m, r.id), 0);
+    record.id = maxId + 1;
+    record.updatedAt = new Date().toISOString();
+    record.createdAt = new Date().toISOString();
+    allRecords.push(record);
+    await save(allRecords);
+    lastDeleted = null;
+    return sendJson(res, 201, record);
   }
 
   return sendJson(res, 405, { error: `unsupported ${method} ${url.pathname}` });

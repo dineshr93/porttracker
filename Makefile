@@ -14,6 +14,12 @@ IMAGE     := porttracker
 CONTAINER := porttracker
 PORT      ?= 3000
 DATA_DIR  ?= $(HOME)/.porttracker
+# Host IP as seen from inside the container. Auto-detect the docker0 bridge
+# address; fall back to the classic 172.17.0.1 if detection fails.
+SCAN_HOST ?= $(shell ip -o -4 addr show docker0 2>/dev/null | awk '{print $$4}' | cut -d/ -f1)
+ifeq ($(SCAN_HOST),)
+SCAN_HOST := 172.17.0.1
+endif
 # Path inside the container where the host data dir is mounted.
 CONTAINER_DATA := /data
 
@@ -22,6 +28,7 @@ run: build
 	@docker run -d --name $(CONTAINER) \
 		-p $(PORT):$(PORT) -e PORT=$(PORT) \
 		-e PORTTRACKERDIR=$(CONTAINER_DATA) \
+		-e SCAN_HOST=$(SCAN_HOST) \
 		-v $(DATA_DIR):$(CONTAINER_DATA) \
 		$(IMAGE)
 	@echo "porttracker running on http://localhost:$(PORT)"
