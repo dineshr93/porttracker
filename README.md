@@ -126,12 +126,18 @@ Invalid input returns `400` with a message (e.g. a port outside 1–65535); miss
 
 ```
 porttracker/
-├── package.json      # app metadata + start script
-├── server.js         # HTTP server, REST API, JSON-file storage
+├── AGENTS.md        # guidance for AI coding agents working in this repo
+├── package.json     # app metadata + start script
+├── server.js        # HTTP server, REST API, JSON-file storage
 ├── public/
-│   └── index.html    # single-page frontend (UI + logic)
-├── data.json         # legacy data (auto-migrated to ~/.porttracker/data.json on first run)
-└── README.md         # this file
+│   └── index.html   # single-page frontend (UI + logic)
+├── skills/
+│   └── porttracker-api/
+│       └── SKILL.md # agent skill: drive the REST API via curl
+├── Dockerfile       # minimal node:22-alpine image
+├── Makefile         # clean build + run / stop helpers
+├── screenshot.png   # README screenshot
+└── README.md        # this file
 ```
 
 > Your data is **not** stored in the repo — it lives at `~/.porttracker/data.json` (or the dir set by `PORTTRACKERDIR`), so it's never committed or lost when you re-clone/redepoly. On first run, existing data from `~/.portainer/config.json` or an old in-project `data.json` is migrated automatically.
