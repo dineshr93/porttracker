@@ -4,6 +4,44 @@ A tiny, minimalistic web app that remembers **which service runs on which port**
 
 It's a small CRUD app: add, view, edit, and delete port→service mappings from a single clean page.
 
+## Install & run (Docker)
+
+Requires Docker. Spin up the service on port 3000 effortlessly:
+
+```bash
+git clone <repo-url> porttracker
+cd porttracker
+make run        # clean build + run the container on port 3000
+```
+
+Open [http://localhost:3000](http://localhost:3000). Data persists to `~/.porttracker/data.json` (outside the repo), so it survives restarts and re-clones.
+
+Other options: `make run PORT=9000` (different port), `make run DATA_DIR=/custom` (custom data dir), or without Docker just `npm start` (Node 18+). See the [Docker](#docker) and [Customization](#customization) sections below.
+
+## Managing ports with an AI/LLM agent
+
+This repo ships an agent skill (`porttracker-api`, under `skills/`) that teaches an AI harness (e.g. Hermes) the REST API, record shape, and validation rules — so you can drive the app from plain English.
+
+### Add the skill to Hermes
+
+Hermes loads skills from `~/.hermes/skills/`:
+
+```bash
+mkdir -p ~/.hermes/skills/software-development
+cp -r skills/porttracker-api ~/.hermes/skills/software-development/
+hermes skills list        # confirm it's registered
+```
+
+Other harnesses: drop the `skills/porttracker-api` folder wherever your harness loads skills (e.g. an AGENTS.md, CLAUDE.md, or a repo-root `skills/` folder) and tell the agent its name.
+
+### Example prompt
+
+```
+scan full tcp ports in pc and check which ports are not tracked already in porttracker and add it
+```
+
+The agent follows the skill: confirms the server is up, lists tracked ports, scans open TCP ports (`ss`/`netstat` or `POST /api/ports/scan`), and creates records for anything untracked — with sensible `service`/`notes`, skipping infra daemons (DNS, Tailscale, etc.) if you prefer.
+
 <p align="center">
   <img src="screenshot.png" alt="porttracker screenshot" width="720">
 </p>
@@ -25,19 +63,6 @@ It's a small CRUD app: add, view, edit, and delete port→service mappings from 
 - **Persistent storage** — data lives in `~/.porttracker/data.json` (outside the repo), so it survives restarts **and** fresh deployments / re-cloned repos.
 - **Zero dependencies** — only Node's built-in `http` module; no `npm install`, no database, no framework.
 - **Minimalistic UI** — one self-contained HTML page with clean, responsive styling.
-
-## Quick start
-
-Requires **Node.js 18+**. No packages to install.
-
-```bash
-cd porttracker
-npm start          # or: node server.js
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-To stop: `Ctrl+C` in the terminal that's running the server.
 
 ## How it works
 
