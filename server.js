@@ -159,18 +159,28 @@ async function handleApi(req, res, url) {
   // GET /api/ports
   if (method === 'GET' && parts.join('/') === 'api/ports') {
     const records = await load();
+    const q = (req.url.split('q=')[1]?.split('&')[0] || '').toLowerCase();
     const page = Math.max(1, Number(req.url.split('page=')[1]?.split('&')[0]) || 1);
     const limit = Math.min(200, Math.max(1, Number(req.url.split('limit=')[1]?.split('&')[0]) || 50));
+
+    const filtered = q 
+      ? records.filter(r => 
+          String(r.port).includes(q) || 
+          (r.service || '').toLowerCase().includes(q) || 
+          (r.endpoints || []).some(e => e.toLowerCase().includes(q))
+        )
+      : records;
+
     const start = (page - 1) * limit;
     // Push favorited records to the front so they always land on page 1,
     // then keep the rest in stable insertion order.
-    const sorted = [...records].sort((a, b) => {
+    const sorted = [...filtered].sort((a, b) => {
       if (a.favorite && !b.favorite) return -1;
       if (!a.favorite && b.favorite) return 1;
       return 0;
     });
     const paginated = sorted.slice(start, start + limit);
-    return sendJson(res, 200, { records: paginated, total: records.length, page, limit });
+    return sendJson(res, 200, { records: paginated, total: filtered.length, page, limit });
   }
 
   // POST /api/ports

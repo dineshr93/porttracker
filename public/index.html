@@ -591,7 +591,11 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
     }
 
     async function loadRecords() {
-      const params = new URLSearchParams({ page: currentPage.value, limit: pageSize });
+      const params = new URLSearchParams({ 
+        page: currentPage.value, 
+        limit: pageSize, 
+        q: searchInput.value.trim() 
+      });
       const data = await request('GET', `${api}?${params}`);
       allRecords = data.records;
       totalRecords = data.total;
@@ -621,12 +625,6 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
       const sortKey = sortSel.value;
 
       let records = allRecords.filter((r) => {
-        const matchesQ =
-          !q ||
-          String(r.port).includes(q) ||
-          (r.service || '').toLowerCase().includes(q) ||
-          (r.endpoints || []).some(e => e.toLowerCase().includes(q));
-        if (!matchesQ) return false;
         if (statusFilter === 'up') return statusMap[r.port] === true;
         if (statusFilter === 'down') return statusMap[r.port] === false;
         return true;
@@ -1031,7 +1029,11 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
       e.preventDefault();
       location.reload();
     });
-    searchInput.addEventListener('input', render);
+    searchInput.addEventListener('input', async () => {
+      currentPage.value = 1;
+      await loadRecords();
+      render();
+    });
     sortSel.addEventListener('change', render);
     statusSel.addEventListener('change', render);
     exportBtn.addEventListener('click', exportData);
