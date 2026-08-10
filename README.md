@@ -127,6 +127,7 @@ Invalid input returns `400` with a message (e.g. a port outside 1–65535); miss
 ```
 porttracker/
 ├── AGENTS.md        # guidance for AI coding agents working in this repo
+├── LICENSE          # GNU AGPL-3.0 license (Copyright (c) 2026 Dinesh Ravi)
 ├── package.json     # app metadata + start script
 ├── server.js        # HTTP server, REST API, JSON-file storage
 ├── public/
@@ -194,5 +195,5 @@ docker run -p 3000:3000 -e PORTTRACKERDIR=/data -v /host/dir:/data porttracker
 
 ## License
 
-Free to use — this is a personal utility for your own machine.
+Licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**, Copyright (c) 2026 Dinesh Ravi. See [LICENSE](LICENSE) for the full license text.
 
