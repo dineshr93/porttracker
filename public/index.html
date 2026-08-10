@@ -464,7 +464,7 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
 
   <input type="file" id="importFile" accept=".json,application/json" hidden>
   <input type="hidden" id="currentPage" value="1">
-  <input type="hidden" id="currentLimit" value="50">
+  <input type="hidden" id="currentLimit" value="5">
   <script>
     const api = '/api/ports';
     const exportApi = '/api/export';
@@ -511,7 +511,7 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
     let currentPageNum = 1;
     let totalPages = 1;
     let totalRecords = 0;
-    let pageSize = 50;
+    let pageSize = 5;
     let lastDeletedRecord = null;
     let undoToastTimer = null;
     let deletingId = null;
@@ -591,11 +591,11 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
     }
 
     async function loadRecords() {
-      const params = new URLSearchParams({ page: currentPage.value, limit: currentLimit.value });
+      const params = new URLSearchParams({ page: currentPage.value, limit: pageSize });
       const data = await request('GET', `${api}?${params}`);
       allRecords = data.records;
       totalRecords = data.total;
-      totalPages = Math.max(1, Math.ceil(totalRecords / parseInt(currentLimit.value)));
+      totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
       currentPageNum = data.page || parseInt(currentPage.value);
       await refreshStatuses();
     }
