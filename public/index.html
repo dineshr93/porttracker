@@ -19,8 +19,10 @@
       --danger: #f87171;
       --danger-soft: rgba(248, 113, 113, 0.12);
       --green: #34d399;
+      --gold: #fbbf24;
       --radius: 14px;
       --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      color-scheme: dark;
     }
     * { box-sizing: border-box; margin: 0; }
     html, body { height: 100%; }
@@ -39,15 +41,14 @@
 
     /* Header */
     header {
-      margin-bottom: 2.5rem;
+      margin-bottom: 2.2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 1rem;
     }
     .header-actions { display: flex; align-items: center; gap: 0.75rem; }
-    .logo-row { display: flex; align-items: center; gap: 0.75rem; }
-    .logo-row { text-decoration: none; color: inherit; }
+    .logo-row { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: inherit; }
     .logo {
       width: 34px; height: 34px; border-radius: 9px;
       background: linear-gradient(135deg, var(--accent), var(--accent-strong));
@@ -88,21 +89,6 @@
     }
     .card[hidden] { display: none; }
 
-    .search-card { padding: 0.45rem 0.9rem; margin-bottom: 1rem; }
-    .search-bar { display: flex; align-items: center; gap: 0.6rem; color: var(--muted); }
-    .search-bar svg { width: 18px; height: 18px; flex-shrink: 0; }
-    .search-bar input {
-      flex: 1;
-      padding: 0.55rem 0.4rem;
-      border: none;
-      background: transparent;
-      color: var(--text);
-      font: inherit;
-    }
-    .search-bar input:focus { outline: none; }
-    .search-bar input::placeholder { color: #565b63; }
-
-    /* Cards */
     .card {
       background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
                   var(--card);
@@ -121,6 +107,55 @@
       background: linear-gradient(var(--accent), var(--accent-strong));
     }
 
+    /* Card head row (title + live summary) */
+    .card-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .card-head h2 { margin-bottom: 0; }
+    .summary { color: var(--muted); font-size: 0.85rem; text-align: right; }
+
+    /* Search — always visible, primary placement in the table card */
+    .search-bar {
+      display: flex; align-items: center; gap: 0.6rem;
+      background: #0d0f13;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 0.55rem 0.85rem;
+      margin-bottom: 1rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .search-bar:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .search-bar svg { width: 18px; height: 18px; color: var(--muted); flex-shrink: 0; }
+    .search-bar input {
+      flex: 1; min-width: 0;
+      padding: 0.25rem 0;
+      border: none; background: transparent;
+      color: var(--text); font: inherit;
+    }
+    .search-bar input:focus { outline: none; }
+    .search-bar input::placeholder { color: #565b63; }
+    .search-bar input::-webkit-search-cancel-button,
+    .search-bar input::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+    .search-bar .kbd {
+      font-size: 0.75rem; color: var(--muted);
+      border: 1px solid var(--card-border); border-radius: 6px;
+      padding: 0.1rem 0.45rem; background: #14171c; flex-shrink: 0;
+    }
+    #searchClear {
+      width: 26px; height: 26px; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 8px; border: none; background: transparent;
+      color: var(--muted); cursor: pointer; flex-shrink: 0;
+      transition: color 0.15s, background 0.15s;
+    }
+    #searchClear:hover { color: var(--text); background: #20242c; }
+    #searchClear svg { width: 14px; height: 14px; }
+    #searchClear[hidden] { display: none; }
+
     /* Form */
     form { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     label { font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 0.4rem; }
@@ -135,6 +170,7 @@
       background: #0d0f13;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
+    input[type="checkbox"] { width: auto; }
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--accent);
@@ -157,6 +193,8 @@
     }
     button:hover { background: #20242c; border-color: #2e333d; }
     button:active { transform: translateY(1px); }
+    button:disabled { opacity: 0.45; cursor: default; }
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     button.primary {
       background: linear-gradient(135deg, var(--accent), var(--accent-strong));
       border-color: transparent; color: #06283a;
@@ -169,20 +207,19 @@
     button.ghost:hover { color: var(--text); background: #20242c; }
 
     /* Table */
-    .table-card { padding: 1rem 2rem 1.6rem; }
-    table { width: 100%; border-collapse: collapse; font-size: 1.05rem; }
+    .table-card { padding: 1.1rem 1.4rem 1.4rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 1.02rem; }
     th {
       text-align: left; padding: 0.75rem 0.6rem; font-weight: 600;
       color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em;
       border-bottom: 1px solid var(--card-border);
     }
-    td { padding: 0.85rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    td { padding: 0.7rem 0.7rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
     tr:last-child td { border-bottom: none; }
     tbody tr { transition: background 0.12s; }
     tbody tr:hover { background: rgba(255,255,255,0.025); }
     td.port {
       font-variant-numeric: tabular-nums; font-weight: 700;
-      padding: 0.85rem 0.8rem;
       min-width: 6.5rem;
       white-space: nowrap;
     }
@@ -200,23 +237,86 @@
       text-align: center; border: 1px dashed var(--card-border); border-radius: 10px;
       margin-top: 0.5rem;
     }
-    .row-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
-    .row-actions button { padding: 0.28rem 0.55rem; font-size: 0.8rem; }
+    .empty-hint { margin-top: 0.6rem; }
 
-    /* Status dots + table toolbar */
-    td.status { width: auto; min-width: 3.4rem; }
-    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; }
+    /* Row actions — compact icon buttons */
+    .row-actions { display: flex; gap: 0.25rem; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+    .icon-btn {
+      width: 30px; height: 30px; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 8px; border: 1px solid transparent; background: transparent;
+      color: var(--muted); cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .icon-btn:hover { background: #20242c; color: var(--text); border-color: var(--card-border); }
+    .icon-btn svg { width: 16px; height: 16px; display: block; }
+    .icon-btn.fav-on { color: var(--gold); }
+    .icon-btn.fav-on:hover { color: var(--gold); }
+    .icon-btn.danger:hover { color: var(--danger); background: var(--danger-soft); border-color: transparent; }
+    .icon-btn:disabled { opacity: 0.35; cursor: default; }
+    .icon-btn:disabled:hover { background: transparent; color: var(--muted); border-color: transparent; }
+
+    /* Reorder controls: grip handle (drag) + up/down arrows */
+    .grip {
+      cursor: grab; touch-action: none; color: var(--muted);
+      transition: color 0.15s;
+    }
+    .grip:hover, .grip:focus-visible { color: var(--accent); }
+    .grip svg { width: 16px; height: 16px; display: block; }
+    .grip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+    .icon-btn.move { touch-action: none; }
+    tr.drag-source { opacity: 0.35; }
+    tr.drag-target-top td { border-top: 2px solid var(--accent) !important; }
+    tr.drag-target-bottom td { border-bottom: 2px solid var(--accent) !important; }
+    tr.drag-target-top td:first-child { border-top-left-radius: 4px; }
+    tr.drag-target-top td:last-child  { border-top-right-radius: 4px; }
+    tr.drag-target-bottom td:first-child { border-bottom-left-radius: 4px; }
+    tr.drag-target-bottom td:last-child  { border-bottom-right-radius: 4px; }
+    tr.drag-over { background: var(--accent-soft); }
+
+    /* Status dot + label */
+    td.status { width: auto; min-width: 6.5rem; }
+    .status-wrap { display: inline-flex; align-items: center; gap: 0.45rem; white-space: nowrap; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; flex-shrink: 0; }
     .dot.up { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.55); }
     .dot.down { background: var(--danger); box-shadow: 0 0 8px rgba(248,113,113,0.55); }
     .dot.unknown { background: #565b63; }
-    .table-toolbar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.9rem; flex-wrap: wrap; }
+    .status-label { font-size: 0.82rem; color: var(--muted); }
+    .status-label.up { color: var(--green); }
+    .status-label.down { color: var(--danger); }
+
+    /* Toolbar + chips */
+    .table-toolbar { display: flex; align-items: center; gap: 0.6rem; margin: 0 0 0.75rem; flex-wrap: wrap; }
     .table-toolbar select { width: auto; padding: 0.35rem 0.55rem; }
-    .table-toolbar .spacer { flex: 1; }
-    .summary { color: var(--muted); font-size: 0.85rem; }
-    .actions-dropdown { position: relative; display: inline-block; }
-    .dropdown-menu { position: absolute; right: 0; top: 100%; background: var(--card); border: 1px solid var(--card-border); border-radius: 10px; padding: 0.5rem 0; box-shadow: var(--shadow); z-index: 10; min-width: 140px; }
-    .dropdown-item { display: block; width: 100%; text-align: left; padding: 0.4rem 0.75rem; border: none; background: none; color: var(--text); cursor: pointer; font: inherit; }
-    .dropdown-item:hover { background: rgba(255,255,255,0.05); color: var(--accent); }
+    .toolbar-divider { width: 1px; height: 1.3rem; background: var(--card-border); }
+    .spacer { flex: 1; }
+    .pageinfo { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+    .chips { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.3rem 0.75rem; border-radius: 999px;
+      font-size: 0.85rem; font-weight: 600;
+      border: 1px solid var(--card-border); background: #14171c; color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .chip:hover { color: var(--text); border-color: #2e333d; background: #1a1e24; }
+    .chip.active { color: var(--accent); border-color: rgba(34,211,238,0.5); background: var(--accent-soft); }
+    .chip.up.active { color: var(--green); border-color: rgba(52,211,153,0.5); background: rgba(52,211,153,0.12); }
+    .chip.down.active { color: var(--danger); border-color: rgba(248,113,113,0.5); background: var(--danger-soft); }
+    .chip .count { font-size: 0.75rem; font-weight: 700; opacity: 0.8; }
+
+    /* Scan results */
+    .scan-table th { text-align: left; padding: 0.4rem; border-bottom: 1px solid var(--card-border); color: var(--muted); }
+    .scan-table td { padding: 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+    /* Spinner (scanning / probing feedback) */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid var(--card-border); border-top-color: var(--accent);
+      border-radius: 50%; vertical-align: -2px;
+      animation: spin 0.7s linear infinite;
+    }
 
     /* Feedback */
     .err { color: var(--danger); font-size: 0.9rem; margin-top: 0.75rem; }
@@ -232,36 +332,40 @@
     td.notes { color: var(--text); font-size: 0.9rem; word-break: break-word; }
 
     /* --- Row animation --- */
-@keyframes rowFadeIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes rowFadeOut {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(20px); }
-}
-tr.row-enter { animation: rowFadeIn 0.25s ease-out; }
-tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
-.dot.status-changed { animation: statusPulse 0.6s ease-in-out 2; }
-@keyframes statusPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.3; transform: scale(1.3); }
-}
+    @keyframes rowFadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes rowFadeOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(20px); }
+    }
+    tr.row-enter { animation: rowFadeIn 0.25s ease-out; }
+    tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
+    .dot.status-changed { animation: statusPulse 0.6s ease-in-out 2; }
+    @keyframes statusPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(1.3); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-/* --- Mobile card layout --- */
-@media (min-width: 641px) {
-      .table-card { padding: 1.6rem 3rem 2.4rem; }
-      table { font-size: 1.15rem; }
-      th { padding: 1rem 1.1rem; }
-      td { padding: 1.1rem 0.95rem; }
+    /* --- Desktop density --- */
+    @media (min-width: 641px) {
+      .table-card { padding: 1.5rem 2.5rem 2rem; }
+      table { font-size: 1.05rem; }
+      th { padding: 0.85rem 1rem; }
+      td { padding: 0.85rem 0.9rem; }
     }
 
+    /* --- Mobile card layout --- */
     @media (max-width: 640px) {
       body { padding: 1.2rem 0.75rem; }
       form { grid-template-columns: 1fr; }
       .logo { width: 30px; height: 30px; }
       .table-card { padding: 0.75rem 1rem 1.2rem; }
       .table-card table { font-size: 1rem; }
+      .card-head { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+      .summary { text-align: left; }
 
       .table-card table,
       .table-card thead,
@@ -339,7 +443,7 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
   </style>
 </head>
 <body>
-  <div id="undoToast" style="display:none;position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:0.6rem 1.2rem;box-shadow:var(--shadow);z-index:100;color:var(--text);font-size:0.9rem;display:none;align-items:center;gap:0.75rem;">
+  <div id="undoToast" style="display:none;position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:0.6rem 1.2rem;box-shadow:var(--shadow);z-index:100;color:var(--text);font-size:0.9rem;align-items:center;gap:0.75rem;">
     <span id="undoMsg"></span>
     <button id="undoBtn" class="primary" style="padding:0.3rem 0.7rem;font-size:0.8rem;">Undo</button>
     <button id="undoDismiss" class="ghost" style="padding:0.3rem 0.5rem;font-size:0.8rem;">✕</button>
@@ -359,21 +463,11 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
         <button id="scanHeaderBtn" class="add-btn" title="Scan ports" aria-label="Scan ports">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/><path d="M16 11a5 5 0 11-10 0 5 5 0 0110 0z"/></svg>
         </button>
-        <button id="searchBtn" class="add-btn" title="Search mappings" aria-label="Search mappings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-        </button>
         <button id="addBtn" class="add-btn" title="Add a port mapping" aria-label="Add a port mapping">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
     </header>
-
-    <div class="card search-card" id="searchCard" hidden>
-      <div class="search-bar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input id="searchInput" type="search" placeholder="Search by port, service, or endpoint…">
-      </div>
-    </div>
 
     <div class="card" id="scanCard" hidden>
       <h2>Scan ports</h2>
@@ -423,52 +517,57 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
           <button class="ghost" type="button" id="resetBtn" hidden>Cancel edit</button>
         </div>
       </form>
-      <div id="feedback"></div>
+      <div id="feedback" aria-live="polite"></div>
     </div>
 
     <div class="card table-card">
-      <h2>Current mappings</h2>
+      <div class="card-head">
+        <h2>Current mappings</h2>
+        <span class="summary" id="summary" aria-live="polite"></span>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input id="searchInput" type="search" placeholder="Search by port, service, or endpoint…" aria-label="Search mappings">
+        <button id="searchClear" title="Clear search" aria-label="Clear search" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6l-12 12"/></svg>
+        </button>
+        <span class="kbd" title="Press / to jump to search">/</span>
+      </div>
       <div class="table-toolbar">
+        <div class="chips" role="group" aria-label="Filter by status">
+          <button class="chip active" type="button" data-status="all" aria-pressed="true" title="All mappings">All <span class="count" id="cntAll">0</span></button>
+          <button class="chip up" type="button" data-status="up" aria-pressed="false" title="Running services on this page">Up <span class="count" id="cntUp">0</span></button>
+          <button class="chip down" type="button" data-status="down" aria-pressed="false" title="Down services on this page">Down <span class="count" id="cntDown">0</span></button>
+        </div>
         <select id="sortSel" title="Sort order">
           <option value="port">Sort: port</option>
           <option value="service">Sort: service</option>
-        </select>
-        <select id="statusSel" title="Filter by status">
-          <option value="all">All statuses</option>
-          <option value="up">Running only</option>
-          <option value="down">Down only</option>
+          <option value="custom">Sort: custom (manual)</option>
         </select>
         <span class="spacer"></span>
-        <span class="summary" id="summary"></span>
-        <span id="pageInfo" style="color:var(--muted);font-size:0.85rem;"></span>
-        <span id="lastSynced" style="color:var(--muted);font-size:0.75rem;"></span>
-        <button class="ghost" id="prevPageBtn" title="Previous page" disabled>◀</button>
-        <button class="ghost" id="nextPageBtn" title="Next page" disabled>▶</button>
-        <div class="actions-dropdown" style="position:relative;display:inline-block;">
-          <button class="ghost" id="actionsBtn" title="More actions" aria-haspopup="true" aria-expanded="false">⋮</button>
-          <div id="actionsMenu" class="dropdown-menu" hidden style="position:absolute;right:0;top:100%;background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:0.5rem 0;box-shadow:var(--shadow);z-index:10;min-width:140px;">
-            <button class="ghost dropdown-item" id="exportBtn" style="width:100%;text-align:left;padding:0.4rem 0.75rem;border:none;background:none;color:var(--text);cursor:pointer;font:inherit;">Export JSON</button>
-            <button class="ghost dropdown-item" id="importBtn" style="width:100%;text-align:left;padding:0.4rem 0.75rem;border:none;background:none;color:var(--text);cursor:pointer;font:inherit;">Import JSON</button>
-          </div>
-        </div>
+        <span class="pageinfo" id="pageInfo"></span>
+        <button class="ghost" id="prevPageBtn" type="button" title="Previous page" disabled>◀</button>
+        <button class="ghost" id="nextPageBtn" type="button" title="Next page" disabled>▶</button>
+        <span class="toolbar-divider"></span>
+        <button class="ghost" id="exportBtn" type="button" title="Export all mappings as a JSON file">Export JSON</button>
+        <button class="ghost" id="importBtn" type="button" title="Import mappings from a JSON file">Import JSON</button>
       </div>
       <table>
         <thead>
-          <tr><th>Status</th><th>Port</th><th>Service</th><th>Endpoints</th><th>Notes</th><th>Actions</th></tr>
+          <tr><th>Status</th><th>Port</th><th>Service</th><th>Endpoints</th><th>Notes</th><th></th></tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
-      <div id="empty" class="empty" hidden>Nothing recorded yet — click the + button to add your first port.</div>
+      <div id="empty" class="empty" hidden></div>
     </div>
   </div>
 
   <input type="file" id="importFile" accept=".json,application/json" hidden>
-  <input type="hidden" id="currentPage" value="1">
-  <input type="hidden" id="currentLimit" value="5">
   <script>
     const api = '/api/ports';
     const exportApi = '/api/export';
     const importApi = '/api/import';
+
     const tbody = document.getElementById('tbody');
     const empty = document.getElementById('empty');
     const form = document.getElementById('form');
@@ -477,27 +576,30 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
     const resetBtn = document.getElementById('resetBtn');
     const addBtn = document.getElementById('addBtn');
     const formCard = document.getElementById('formCard');
-    const searchBtn = document.getElementById('searchBtn');
-    const searchCard = document.getElementById('searchCard');
     const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
     const sortSel = document.getElementById('sortSel');
-    const statusSel = document.getElementById('statusSel');
+    const chipAll = document.querySelector('.chip[data-status="all"]');
+    const chipUp = document.querySelector('.chip[data-status="up"]');
+    const chipDown = document.querySelector('.chip[data-status="down"]');
+    const chipButtons = [chipAll, chipUp, chipDown];
+    const cntAll = document.getElementById('cntAll');
+    const cntUp = document.getElementById('cntUp');
+    const cntDown = document.getElementById('cntDown');
     const summary = document.getElementById('summary');
+    const pageInfo = document.getElementById('pageInfo');
     const exportBtn = document.getElementById('exportBtn');
     const importBtn = document.getElementById('importBtn');
     const importFile = document.getElementById('importFile');
+    const scanHeaderBtn = document.getElementById('scanHeaderBtn');
     const scanCard = document.getElementById('scanCard');
     const scanBtn = document.getElementById('scanBtn');
-    const scanHeaderBtn = document.getElementById('scanHeaderBtn');
     const scanFrom = document.getElementById('scanFrom');
     const scanTo = document.getElementById('scanTo');
     const scanResult = document.getElementById('scanResult');
     const scanResults = document.getElementById('scanResults');
-    const currentPage = document.getElementById('currentPage');
-    const currentLimit = document.getElementById('currentLimit');
     const prevPageBtn = document.getElementById('prevPageBtn');
     const nextPageBtn = document.getElementById('nextPageBtn');
-    const pageInfo = document.getElementById('pageInfo');
     const undoToast = document.getElementById('undoToast');
     const undoMsg = document.getElementById('undoMsg');
     const undoBtn = document.getElementById('undoBtn');
@@ -505,17 +607,21 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
 
     let editingId = null;
     let allRecords = [];
-    let statusMap = {};   // port -> true (running) | false (down)
-    let prevStatusMap = {}; // previous status snapshot for change alerts
+    let statusMap = {};      // port -> true (running) | false (down)
+    let prevStatusMap = {};  // previous status snapshot for change alerts
     let probeSeq = 0;
-    let currentPageNum = 1;
+    let probing = false;
+    let pageQuery = 1;
     let totalPages = 1;
     let totalRecords = 0;
-    let pageSize = 5;
+    const pageSize = 20;
+    let statusFilter = 'all';
     let lastDeletedRecord = null;
     let undoToastTimer = null;
     let deletingId = null;
-    const lastSynced = document.getElementById("lastSynced");
+    let searchDebounce = null;
+    let dragActive = false;      // a drag is in progress — pause re-renders
+    let moveInProgress = false;  // one reorder request at a time
 
     async function request(method, path, body) {
       const res = await fetch(path, {
@@ -537,17 +643,17 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
       setTimeout(() => el.remove(), 4000);
     }
 
+    function probeHost() {
+      const hn = window.location.hostname;
+      return (hn === '0.0.0.0' || hn === '::' || hn === '') ? '127.0.0.1' : hn;
+    }
+
     function getUrl(port, endpoint) {
-      const base = `http://0.0.0.0:${port}`;
+      const base = `http://${probeHost()}:${port}`;
       const desc = (endpoint || '').trim();
       if (/^https?:\/\//i.test(desc)) return desc;
       if (desc.startsWith('/')) return base + desc;
       return base;
-    }
-
-    function probeHost() {
-      const hn = window.location.hostname;
-      return (hn === '0.0.0.0' || hn === '::' || hn === '') ? '127.0.0.1' : hn;
     }
 
     async function probeHostPort(host, port, timeout = 1200) {
@@ -576,8 +682,10 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
       const records = allRecords;
       if (!records.length) { prevStatusMap = statusMap; statusMap = {}; render(); return; }
 
+      probing = true;
       // Snapshot previous status for change detection
       prevStatusMap = { ...statusMap };
+      render(); // show "probing…" immediately
 
       const results = await Promise.all(records.map(async (r) => {
         const up = await probePort(r.port);
@@ -587,81 +695,133 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
       if (seq !== probeSeq) return;
       statusMap = {};
       for (const r of results) statusMap[r.port] = r.up;
+      probing = false;
       render();
     }
 
     async function loadRecords() {
-      const params = new URLSearchParams({ 
-        page: currentPage.value, 
-        limit: pageSize, 
-        q: searchInput.value.trim() 
+      const params = new URLSearchParams({
+        page: String(pageQuery),
+        limit: String(pageSize),
+        q: searchInput.value.trim(),
       });
+      // Custom mode serves the persisted manual order straight from storage.
+      if (sortSel.value === 'custom') params.set('sort', 'custom');
       const data = await request('GET', `${api}?${params}`);
       allRecords = data.records;
       totalRecords = data.total;
       totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
-      currentPageNum = data.page || parseInt(currentPage.value);
+      pageQuery = data.page || pageQuery;
+      // If a restored hash pointed past the last page, clamp to it.
+      if (!allRecords.length && totalRecords > 0 && pageQuery > totalPages) {
+        pageQuery = totalPages;
+        syncHash();
+        return loadRecords();
+      }
       await refreshStatuses();
     }
 
-
     function changePage(delta) {
-      const newPage = currentPageNum + delta;
+      const newPage = pageQuery + delta;
       if (newPage < 1 || newPage > totalPages) return;
-      currentPageNum = newPage;
-      currentPage.value = newPage;
-      updatePagination();
+      pageQuery = newPage;
+      syncHash();
       loadRecords();
     }
 
     function updatePagination() {
-      prevPageBtn.disabled = currentPageNum <= 1;
-      nextPageBtn.disabled = currentPageNum >= totalPages;
-      pageInfo.textContent = totalPages > 1 ? `Page ${currentPageNum} of ${totalPages} (${totalRecords} records)` : `${totalRecords} records`;
+      prevPageBtn.disabled = pageQuery <= 1;
+      nextPageBtn.disabled = pageQuery >= totalPages;
+      pageInfo.textContent = totalPages > 1 ? `Page ${pageQuery} of ${totalPages}` : '';
     }
+
+    // --- View state persisted in the URL hash (#q=…&page=…&status=…&sort=…) ---
+    function readHash() {
+      const params = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+      return {
+        q: params.get('q') || '',
+        page: parseInt(params.get('page'), 10) || 1,
+        status: params.get('status') || 'all',
+        sort: params.get('sort') || 'port',
+      };
+    }
+
+    function syncHash() {
+      const params = new URLSearchParams();
+      const q = searchInput.value.trim();
+      if (q) params.set('q', q);
+      if (pageQuery > 1) params.set('page', String(pageQuery));
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (sortSel.value !== 'port') params.set('sort', sortSel.value);
+      const qs = params.toString();
+      history.replaceState(null, '', qs ? `#${qs}` : location.pathname + location.search);
+    }
+
+    function setActiveChip() {
+      for (const btn of chipButtons) {
+        const active = btn.dataset.status === statusFilter;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', String(active));
+      }
+    }
+
     function render() {
-      const q = searchInput.value.trim().toLowerCase();
-      const statusFilter = statusSel.value;
+      if (dragActive) return; // don't rebuild rows mid-drag
+      const statusFilterVal = statusFilter;
       const sortKey = sortSel.value;
 
       let records = allRecords.filter((r) => {
-        if (statusFilter === 'up') return statusMap[r.port] === true;
-        if (statusFilter === 'down') return statusMap[r.port] === false;
+        if (statusFilterVal === 'up') return statusMap[r.port] === true;
+        if (statusFilterVal === 'down') return statusMap[r.port] === false;
         return true;
       });
 
-      // Sort favorites to top, then by sortKey
-      records = [...records].sort((a, b) => {
-        if (a.favorite && !b.favorite) return -1;
-        if (!a.favorite && b.favorite) return 1;
-        if (sortKey === 'service') {
-          const x = (a.service || '').toLowerCase();
-          const y = (b.service || '').toLowerCase();
-          return x.localeCompare(y) || a.port - b.port;
-        }
-        return a.port - b.port;
-      });
+      // Sort favorites to top, then by sortKey. In custom mode the server
+      // already serves the persisted manual order — show it as-is so the
+      // arrangement the user built isn't scrambled by a local re-sort.
+      if (sortKey !== 'custom') {
+        records = [...records].sort((a, b) => {
+          if (a.favorite && !b.favorite) return -1;
+          if (!a.favorite && b.favorite) return 1;
+          if (sortKey === 'service') {
+            const x = (a.service || '').toLowerCase();
+            const y = (b.service || '').toLowerCase();
+            return x.localeCompare(y) || a.port - b.port;
+          }
+          return a.port - b.port;
+        });
+      }
 
-      const running = allRecords.filter((r) => statusMap[r.port] === true).length;
-      const down = allRecords.filter((r) => statusMap[r.port] === false).length;
-      summary.textContent = allRecords.length
-        ? `${allRecords.length} total · ${running} running · ${down} down`
-        : '';
+      // Chip counts reflect the records currently loaded (server page + search results)
+      let upCount = 0, downCount = 0;
+      for (const r of allRecords) {
+        if (statusMap[r.port] === true) upCount++;
+        else if (statusMap[r.port] === false) downCount++;
+      }
+      cntAll.textContent = String(allRecords.length);
+      cntUp.textContent = String(upCount);
+      cntDown.textContent = String(downCount);
+      summary.textContent = totalRecords
+        ? `${totalRecords} record${totalRecords === 1 ? '' : 's'} · synced ${new Date().toLocaleTimeString()}${probing ? ' · probing…' : ''}`
+        : (probing ? 'probing…' : '');
+      setActiveChip();
 
-      lastSynced.textContent = ` (synced ${new Date().toLocaleTimeString()})`;
       tbody.innerHTML = '';
-      if (allRecords.length === 0) {
+      if (!allRecords.length) {
         empty.hidden = false;
-        empty.textContent = 'Nothing recorded yet — click the + button to add your first port.';
-      } else if (records.length === 0) {
+        empty.textContent = 'No port mappings yet — add your first one with the + button (or press n).';
+      } else if (!records.length) {
         empty.hidden = false;
-        empty.textContent = 'No mappings match your search/filter.';
+        buildEmptyState();
       } else {
         empty.hidden = true;
       }
 
-      for (const r of records) {
+      const atEdge = sortKey === 'custom' && !reorderBlockedReason();
+      for (let i = 0; i < records.length; i++) {
+        const r = records[i];
         const tr = document.createElement('tr');
+        tr.dataset.id = String(r.id);
         const up = statusMap[r.port];
         const prevUp = prevStatusMap[r.port];
         const dotClass = up === undefined ? 'unknown' : (up ? 'up' : 'down');
@@ -669,90 +829,188 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
 
         // Status change alert indicator
         const statusChanged = prevUp !== undefined && up !== undefined && prevUp !== up;
-        if (statusChanged) {
-          tr.classList.add('row-enter');
-        }
+        if (statusChanged) tr.classList.add('row-enter');
 
+        // Status cell
+        const tdStatus = document.createElement('td');
+        tdStatus.className = 'status';
+        tdStatus.dataset.label = 'Status';
+        const statusWrap = document.createElement('span');
+        statusWrap.className = 'status-wrap';
+        const dot = document.createElement('span');
+        dot.className = `dot ${dotClass}${statusChanged ? ' status-changed' : ''}`;
+        dot.title = dotTitle;
+        const statusLabel = document.createElement('span');
+        statusLabel.className = `status-label ${dotClass === 'unknown' ? '' : dotClass}`;
+        statusLabel.textContent = up === undefined ? 'checking…' : (up ? 'Up' : 'Down');
+        statusWrap.append(dot, statusLabel);
+        tdStatus.appendChild(statusWrap);
+        tr.appendChild(tdStatus);
+
+        // Port cell — link uses the real hostname, not a dead 0.0.0.0 URL
+        const tdPort = document.createElement('td');
+        tdPort.className = 'port';
+        tdPort.dataset.label = 'Port';
+        const portLink = document.createElement('a');
+        portLink.href = `http://${probeHost()}:${r.port}`;
+        portLink.target = '_blank';
+        portLink.rel = 'noopener';
+        portLink.textContent = String(r.port);
+        portLink.title = `Open http://${probeHost()}:${r.port}`;
+        tdPort.appendChild(portLink);
+        tr.appendChild(tdPort);
+
+        // Service cell
+        const tdService = document.createElement('td');
+        tdService.dataset.label = 'Service';
+        tdService.textContent = r.service || '';
+        if (r.favorite) {
+          const star = document.createElement('span');
+          star.textContent = ' ⭐';
+          star.title = 'Favorite';
+          tdService.appendChild(star);
+        }
+        tr.appendChild(tdService);
+
+        // Endpoints cell
+        const tdEndpoints = document.createElement('td');
+        tdEndpoints.className = 'endpoints-cell';
+        tdEndpoints.dataset.label = 'Endpoints';
         const endpointsList = document.createElement('div');
         endpointsList.className = 'endpoints-list';
-        (r.endpoints || []).forEach(e => {
+        (r.endpoints || []).forEach((e) => {
           const item = document.createElement('div');
           item.className = 'endpoint-item';
-          const url = getUrl(r.port, e);
           const link = document.createElement('a');
-          link.href = escapeHtml(url);
+          link.href = getUrl(r.port, e);
           link.target = '_blank';
           link.rel = 'noopener';
-          link.textContent = escapeHtml(e);
-          item.append(link);
-          endpointsList.append(item);
+          link.textContent = e;
+          item.appendChild(link);
+          endpointsList.appendChild(item);
         });
+        tdEndpoints.appendChild(endpointsList);
+        tr.appendChild(tdEndpoints);
 
         // Notes cell
-        const notesText = r.notes || '';
+        const tdNotes = document.createElement('td');
+        tdNotes.className = 'notes';
+        tdNotes.dataset.label = 'Notes';
+        tdNotes.textContent = r.notes || '';
+        tr.appendChild(tdNotes);
 
-        // Favorite pin button
-        const favBtn = document.createElement('button');
-        favBtn.className = 'ghost';
-        favBtn.style.cssText = 'font-size:0.8rem;padding:0.2rem 0.4rem;';
-        favBtn.textContent = r.favorite ? '⭐' : '☆';
-        favBtn.title = r.favorite ? 'Remove from favorites' : 'Add to favorites';
-        favBtn.onclick = async () => {
+        // Actions cell — reorder controls (grip + arrows) + icon buttons
+        const tdActions = document.createElement('td');
+        tdActions.className = 'row-actions';
+        tdActions.dataset.label = 'Actions';
+        const gripBtn = iconButton(ICONS.grip, 'Drag to reorder (or focus + ↑/↓ keys)', 'grip');
+        attachDrag(gripBtn, tr, r.id);
+        gripBtn.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowUp') { e.preventDefault(); moveByDirection('up', r.id); }
+          else if (e.key === 'ArrowDown') { e.preventDefault(); moveByDirection('down', r.id); }
+        });
+        const upBtn = iconButton(ICONS.arrowUp, 'Move up in custom order', 'move');
+        upBtn.addEventListener('click', () => moveByDirection('up', r.id));
+        const downBtn = iconButton(ICONS.arrowDown, 'Move down in custom order', 'move');
+        downBtn.addEventListener('click', () => moveByDirection('down', r.id));
+        // In custom (unfiltered) mode the display order IS the stored order,
+        // so edge records can have their outward arrow disabled.
+        upBtn.disabled = atEdge && i === 0;
+        downBtn.disabled = atEdge && i === records.length - 1;
+        const favBtn = iconButton(r.favorite ? ICONS.starOn : ICONS.starOff,
+          r.favorite ? 'Remove from favorites' : 'Add to favorites',
+          r.favorite ? 'fav-on' : '');
+        favBtn.addEventListener('click', async () => {
           try {
             await request('PUT', `${api}/${r.id}`, { favorite: !r.favorite });
             loadRecords();
           } catch (err) {
             show(err.message, true);
           }
-        };
+        });
+        const copyBtn = iconButton(ICONS.copy, 'Copy first endpoint URL');
+        copyBtn.addEventListener('click', () => copyUrl(r));
+        const editBtn = iconButton(ICONS.edit, 'Edit mapping');
+        editBtn.addEventListener('click', () => startEdit(r));
+        const delBtn = iconButton(ICONS.trash, 'Delete mapping', 'danger');
+        delBtn.addEventListener('click', () => confirmDelete(r));
+        tdActions.append(gripBtn, upBtn, downBtn, favBtn, copyBtn, editBtn, delBtn);
 
-        tr.innerHTML = `
-          <td class="status" data-label="Status"><span class="dot ${dotClass}${statusChanged ? ' status-changed' : ''}" title="${dotTitle}"></span></td>
-          <td class="port" data-label="Port"><a href="http://0.0.0.0:${r.port}" target="_blank" rel="noopener">${r.port}</a></td>
-          <td data-label="Service">${escapeHtml(r.service)}${r.favorite ? ' ⭐' : ''}</td>
-          <td class="endpoints-cell" data-label="Endpoints">${endpointsList.innerHTML}</td>
-          <td class="notes" data-label="Notes">${escapeHtml(notesText)}</td>
-        `;
-
-        const tdActions = document.createElement('td');
-        tdActions.className = 'row-actions';
-        tdActions.append(favBtn);
-        const copyBtn = document.createElement('button');
-        copyBtn.textContent = 'Copy';
-        copyBtn.onclick = () => copyUrl(r);
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
-        editBtn.onclick = () => startEdit(r);
-        const delBtn = document.createElement('button');
-        delBtn.className = 'danger';
         if (deletingId === r.id) {
-          delBtn.textContent = 'Confirm';
-          delBtn.style.cssText = 'background:var(--danger-soft);color:var(--danger);font-size:0.75rem;padding:0.2rem 0.4rem;';
-          delBtn.onclick = () => confirmDelete(r);
+          // Inline confirmation replaces the icon buttons
+          const confirmBtn = document.createElement('button');
+          confirmBtn.textContent = 'Confirm';
+          confirmBtn.className = 'danger';
+          confirmBtn.style.cssText = 'font-size:0.78rem;padding:0.25rem 0.55rem;';
+          confirmBtn.addEventListener('click', () => confirmDelete(r));
           const cancelBtn = document.createElement('button');
           cancelBtn.textContent = 'Cancel';
           cancelBtn.className = 'ghost';
-          cancelBtn.style.cssText = 'font-size:0.75rem;padding:0.2rem 0.4rem;';
-          cancelBtn.onclick = () => cancelDelete();
-          // Hide copy/edit during confirmation to prevent overflow
+          cancelBtn.style.cssText = 'font-size:0.78rem;padding:0.25rem 0.55rem;';
+          cancelBtn.addEventListener('click', () => cancelDelete());
+          favBtn.style.display = 'none';
           copyBtn.style.display = 'none';
           editBtn.style.display = 'none';
-          tdActions.append(delBtn, cancelBtn);
-        } else {
-          delBtn.textContent = 'Delete';
-          delBtn.onclick = () => confirmDelete(r);
-          tdActions.append(copyBtn, editBtn, delBtn);
+          delBtn.style.display = 'none';
+          gripBtn.style.display = 'none';
+          upBtn.style.display = 'none';
+          downBtn.style.display = 'none';
+          tdActions.append(confirmBtn, cancelBtn);
         }
         tr.appendChild(tdActions);
-
         tbody.append(tr);
       }
       updatePagination();
     }
 
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, (c) =>
-        ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' })[c]);
+    function buildEmptyState() {
+      empty.innerHTML = '';
+      const qv = searchInput.value.trim();
+      let text;
+      if (qv) text = `No matches for “${qv}”`;
+      else if (statusFilter === 'up') text = 'No running services on this page';
+      else if (statusFilter === 'down') text = 'No down services on this page';
+      else text = 'No mappings match the current filters';
+      const p = document.createElement('div');
+      p.textContent = text + '.';
+      empty.appendChild(p);
+      if (qv) {
+        const hint = document.createElement('div');
+        hint.className = 'empty-hint';
+        const btn = document.createElement('button');
+        btn.className = 'ghost';
+        btn.textContent = 'Clear search';
+        btn.addEventListener('click', () => clearSearch());
+        hint.appendChild(btn);
+        empty.appendChild(hint);
+      } else if (statusFilter !== 'all') {
+        const hint = document.createElement('div');
+        hint.className = 'empty-hint';
+        hint.textContent = 'Switch back to the “All” chip to see everything on this page.';
+        empty.appendChild(hint);
+      }
+    }
+
+    // --- Icons (static SVG strings only — no user data is ever injected) ---
+    const ICONS = {
+      starOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.6l2.6 5.2 5.8.9-4.2 4.1 1 5.7-5.2-2.7-5.2 2.7 1-5.7-4.2-4.1 5.8-.9z"/></svg>',
+      starOn: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3.6l2.6 5.2 5.8.9-4.2 4.1 1 5.7-5.2-2.7-5.2 2.7 1-5.7-4.2-4.1 5.8-.9z"/></svg>',
+      copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h8"/></svg>',
+      edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 00-3-3L5 17v3z"/></svg>',
+      trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 7V5h4v2"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>',
+      grip: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>',
+      arrowUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>',
+      arrowDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>',
+    };
+
+    function iconButton(svg, title, extraClass = '') {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = ('icon-btn ' + extraClass).trim();
+      btn.title = title;
+      btn.setAttribute('aria-label', title);
+      btn.innerHTML = svg; // static icon markup only
+      return btn;
     }
 
     async function copyText(text) {
@@ -770,6 +1028,128 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
       ta.remove();
       return ok;
     }
+
+    // --- Reordering (persisted custom order) -------------------------------
+    // The stored array order in data.json IS the manual arrangement, served
+    // back by GET /api/ports?sort=custom. Any reorder switches the view to
+    // custom mode — otherwise a port/service re-render would hide the change.
+    function ensureCustomMode() {
+      if (sortSel.value !== 'custom') {
+        sortSel.value = 'custom';
+        syncHash();
+      }
+    }
+
+    // Reordering swaps records in the stored array, which is only WYSIWYG
+    // when the view shows that order unfiltered — otherwise the neighbor it
+    // swaps with may be hidden by a chip or a search match.
+    function reorderBlockedReason() {
+      if (searchInput.value.trim()) return 'Clear the search to rearrange records.';
+      if (statusFilter !== 'all') return 'Switch back to the “All” chip to rearrange records.';
+      return '';
+    }
+
+    async function moveByDirection(direction, id) {
+      if (moveInProgress) return;
+      const blocked = reorderBlockedReason();
+      if (blocked) { show(blocked, true); return; }
+      const idx = allRecords.findIndex((r) => r.id === id);
+      if (idx === -1) return;
+      moveInProgress = true;
+      try {
+        await request('POST', `${api}/${id}/move`, { direction });
+        // Follow the record across a page boundary when it walks off this page.
+        const atTop = idx === 0 && direction === 'up' && pageQuery > 1;
+        const atBottom = idx === allRecords.length - 1 && direction === 'down' && pageQuery < totalPages;
+        if (atTop || atBottom) {
+          pageQuery += direction === 'up' ? -1 : 1;
+          syncHash();
+        }
+        ensureCustomMode();
+        await loadRecords();
+      } catch (err) {
+        show(err.message, true);
+      } finally {
+        moveInProgress = false;
+      }
+    }
+
+    // Drag-and-drop on the grip handle. HTML5 DnD from a button works on
+    // desktop; touch devices use the ▲/▼ buttons instead.
+    function attachDrag(handle, row, id) {
+      handle.draggable = true;
+      handle.addEventListener('dragstart', (e) => {
+        const blocked = reorderBlockedReason();
+        if (blocked) { show(blocked, true); e.preventDefault(); return; }
+        if (moveInProgress) { e.preventDefault(); return; }
+        dragActive = true;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(id));
+        try { e.dataTransfer.setDragImage(row, 0, 0); } catch {}
+        row.classList.add('drag-source');
+      });
+      handle.addEventListener('dragend', () => {
+        dragActive = false;
+        clearDragClasses();
+        row.classList.remove('drag-source');
+        render();
+      });
+    }
+
+    function clearDragClasses() {
+      for (const tr of tbody.querySelectorAll('tr')) {
+        tr.classList.remove('drag-target-top', 'drag-target-bottom', 'drag-over');
+      }
+    }
+
+    // Drop targets live on tbody so the indicator follows the pointer even
+    // between cells. Top half of a row = insert before it; bottom half = after.
+    tbody.addEventListener('dragover', (e) => {
+      if (!dragActive) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const row = e.target.closest('tr');
+      if (!row || !row.dataset.id) { clearDragClasses(); return; }
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      clearDragClasses();
+      row.classList.add(before ? 'drag-target-top' : 'drag-target-bottom');
+      row.classList.add('drag-over');
+      tbody.dataset.dropPos = before ? 'before' : 'after';
+      tbody.dataset.dropTarget = row.dataset.id;
+    });
+    tbody.addEventListener('dragleave', (e) => {
+      if (!dragActive) return;
+      // Moving between cells inside tbody fires bubbling dragleave events —
+      // only clear when the pointer actually left the table body.
+      if (e.relatedTarget && tbody.contains(e.relatedTarget)) return;
+      clearDragClasses();
+      delete tbody.dataset.dropPos;
+      delete tbody.dataset.dropTarget;
+    });
+    tbody.addEventListener('drop', async (e) => {
+      if (!dragActive) return;
+      e.preventDefault();
+      const pos = tbody.dataset.dropPos;
+      const targetId = tbody.dataset.dropTarget;
+      const draggedId = Number(e.dataTransfer.getData('text/plain'));
+      clearDragClasses();
+      delete tbody.dataset.dropPos;
+      delete tbody.dataset.dropTarget;
+      if (!pos || !targetId || !draggedId || moveInProgress) return;
+      if (reorderBlockedReason()) return; // drag can't start while blocked, but be safe
+      moveInProgress = true;
+      try {
+        const payload = pos === 'before' ? { beforeId: Number(targetId) } : { afterId: Number(targetId) };
+        await request('POST', `${api}/${draggedId}/move`, payload);
+        ensureCustomMode();
+        await loadRecords();
+      } catch (err) {
+        show(err.message, true);
+      } finally {
+        moveInProgress = false;
+      }
+    });
 
     async function copyUrl(r) {
       const firstEndpoint = r.endpoints && r.endpoints.length > 0 ? r.endpoints[0] : '';
@@ -831,9 +1211,9 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
       updateAddBtn();
     }
 
-    const SCAN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/><path d="M16 11a5 5 0 11-10 0 5 5 0 0110 0z"/></svg>';
     const PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
     const CLOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6l-12 12"/></svg>';
+    const SCAN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/><path d="M16 11a5 5 0 11-10 0 5 5 0 0110 0z"/></svg>';
 
     function updateAddBtn() {
       const showing = !formCard.hidden;
@@ -845,21 +1225,6 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
     function toggleAddForm() {
       if (formCard.hidden) showAddForm();
       else hideAddForm();
-    }
-
-    const SEARCH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>';
-
-    function updateSearchBtn() {
-      const showing = !searchCard.hidden;
-      searchBtn.innerHTML = showing ? CLOSE_SVG : SEARCH_SVG;
-      searchBtn.title = showing ? 'Close search' : 'Search mappings';
-      searchBtn.setAttribute('aria-label', showing ? 'Close search' : 'Search mappings');
-    }
-
-    function toggleSearch() {
-      searchCard.hidden = !searchCard.hidden;
-      updateSearchBtn();
-      if (!searchCard.hidden) searchInput.focus();
     }
 
     function updateScanBtn() {
@@ -886,24 +1251,39 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
       document.getElementById('favorite').checked = r.favorite === true;
       resetBtn.hidden = false;
       document.getElementById('service').focus();
+      updateAddBtn();
     }
 
+    function prefillAdd(port, service) {
+      document.getElementById('port').value = port;
+      document.getElementById('service').value = service;
+      formCard.hidden = false;
+      editingId = null;
+      formTitle.textContent = 'Add a port mapping';
+      resetBtn.hidden = true;
+      updateAddBtn();
+      document.getElementById('service').focus();
+    }
 
     async function confirmDelete(r) {
       if (deletingId === r.id) {
         // User confirmed — proceed with delete
         deletingId = null;
-        await request('DELETE', `${api}/${r.id}`);
-        lastDeletedRecord = r;
-        undoMsg.textContent = `Deleted port ${r.port} (${r.service})`;
-        undoToast.style.display = 'flex';
-        // Auto-dismiss undo toast after 8 seconds
-        clearTimeout(undoToastTimer);
-        undoToastTimer = setTimeout(() => { undoToast.style.display = "none"; lastDeletedRecord = null; }, 8000);
-        show(`Deleted port ${r.port} (${r.service})`);
-        resetForm();
-        hideAddForm();
-        loadRecords();
+        try {
+          await request('DELETE', `${api}/${r.id}`);
+          lastDeletedRecord = r;
+          undoMsg.textContent = `Deleted port ${r.port} (${r.service})`;
+          undoToast.style.display = 'flex';
+          // Auto-dismiss undo toast after 8 seconds
+          clearTimeout(undoToastTimer);
+          undoToastTimer = setTimeout(() => { undoToast.style.display = 'none'; lastDeletedRecord = null; }, 8000);
+          show(`Deleted port ${r.port} (${r.service})`);
+          resetForm();
+          hideAddForm();
+          loadRecords();
+        } catch (err) {
+          show(err.message, true);
+        }
       } else {
         // First click — show inline confirmation
         deletingId = r.id;
@@ -915,7 +1295,6 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
       deletingId = null;
       render();
     }
-
 
     async function undoDelete() {
       if (!lastDeletedRecord) return;
@@ -932,8 +1311,17 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
 
     function dismissUndo() {
       clearTimeout(undoToastTimer);
-      undoToast.style.display = "none";
+      undoToast.style.display = 'none';
       lastDeletedRecord = null;
+    }
+
+    function clearSearch(focus = true) {
+      searchInput.value = '';
+      searchClear.hidden = true;
+      pageQuery = 1;
+      syncHash();
+      if (focus) searchInput.focus();
+      loadRecords();
     }
 
     form.addEventListener('submit', async (e) => {
@@ -972,7 +1360,7 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
       const from = Math.max(1, Math.min(65535, Number(scanFrom.value) || 1));
       const to = Math.max(1, Math.min(65535, Number(scanTo.value) || 65535));
       if (from > to) { scanResult.textContent = 'Invalid range'; return; }
-      scanResult.textContent = 'Scanning…';
+      scanResult.innerHTML = '<span class="spinner"></span> Scanning…';
       scanResults.innerHTML = '';
       try {
         const res = await fetch('/api/ports/scan', {
@@ -982,78 +1370,104 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Scan failed');
-        scanResult.textContent = `Found ${data.open.length} open port(s)`;
+        scanResult.textContent = `Found ${data.open.length} open port(s) in ${from}–${to}`;
         if (data.open.length === 0) {
           scanResults.innerHTML = '<div class="empty">No open ports found in this range.</div>';
         } else {
-          let html = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">';
-          html += '<tr><th style="text-align:left;padding:0.4rem;border-bottom:1px solid var(--card-border);color:var(--muted);">Port</th><th style="text-align:left;padding:0.4rem;border-bottom:1px solid var(--card-border);color:var(--muted);">Service</th><th style="text-align:left;padding:0.4rem;border-bottom:1px solid var(--card-border);color:var(--muted);">Status</th><th></th></tr>';
-          for (const p of data.open) {
-            const known = p.known;
-            html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">`;
-            html += `<td style="padding:0.4rem;font-weight:700;">${p.port}</td>`;
-            html += `<td style="padding:0.4rem;color:${known ? 'var(--text)' : 'var(--muted)'};">${known ? escapeHtml(p.service) : '<em>unknown</em>'}</td>`;
-            html += `<td style="padding:0.4rem;"><span class="dot ${known ? 'up' : 'unknown'}"></span> ${known ? 'known' : 'new'}</td>`;
-            html += `<td style="padding:0.4rem;">${known ? '<span style="font-size:0.8rem;color:var(--green);">known</span>' : `<button class="ghost" data-add-port="${p.port}" data-add-service="${escapeHtml(p.service || '')}" style="font-size:0.8rem;">+ Add</button>`}</td>`;
-            html += `</tr>`;
+          const tbl = document.createElement('table');
+          tbl.className = 'scan-table';
+          const thead = document.createElement('thead');
+          const hrow = document.createElement('tr');
+          for (const h of ['Port', 'Service', 'Status', '']) {
+            const th = document.createElement('th');
+            th.textContent = h;
+            hrow.appendChild(th);
           }
-          html += '</table>';
-          scanResults.innerHTML = html;
-          // Wire up "Add" buttons
-          scanResults.querySelectorAll('[data-add-port]').forEach(btn => {
-            btn.addEventListener('click', () => {
-              const port = Number(btn.dataset.addPort);
-              const service = btn.dataset.addService || `Port ${port}`;
-              document.getElementById('port').value = port;
-              document.getElementById('service').value = service;
-              formCard.hidden = false;
-              editingId = null;
-              formTitle.textContent = 'Add a port mapping';
-              resetBtn.hidden = true;
-              updateAddBtn();
-              toggleScan();
-              document.getElementById('service').focus();
-            });
-          });
+          thead.appendChild(hrow);
+          tbl.appendChild(thead);
+          const tb = document.createElement('tbody');
+          for (const p of data.open) {
+            const tr = document.createElement('tr');
+            const tdPort = document.createElement('td');
+            tdPort.textContent = p.port;
+            tdPort.style.fontWeight = '700';
+            const tdSvc = document.createElement('td');
+            if (p.known) tdSvc.textContent = p.service || '';
+            else {
+              const em = document.createElement('em');
+              em.textContent = 'unknown';
+              tdSvc.appendChild(em);
+            }
+            const tdSt = document.createElement('td');
+            const wrap = document.createElement('span');
+            wrap.className = 'status-wrap';
+            const dot = document.createElement('span');
+            dot.className = `dot ${p.known ? 'up' : 'unknown'}`;
+            const lbl = document.createElement('span');
+            lbl.className = 'status-label';
+            lbl.textContent = p.known ? 'known' : 'new';
+            wrap.append(dot, lbl);
+            tdSt.appendChild(wrap);
+            const tdAct = document.createElement('td');
+            if (!p.known) {
+              const addBtn2 = document.createElement('button');
+              addBtn2.className = 'ghost';
+              addBtn2.textContent = '+ Add';
+              addBtn2.style.fontSize = '0.8rem';
+              addBtn2.addEventListener('click', () => {
+                prefillAdd(p.port, p.service || `Port ${p.port}`);
+                toggleScan();
+              });
+              tdAct.appendChild(addBtn2);
+            }
+            tr.append(tdPort, tdSvc, tdSt, tdAct);
+            tb.appendChild(tr);
+          }
+          tbl.appendChild(tb);
+          scanResults.appendChild(tbl);
         }
       } catch (err) {
         scanResult.textContent = 'Scan failed';
         scanResults.innerHTML = `<div class="err">${err.message}</div>`;
       }
     });
+
     addBtn.addEventListener('click', toggleAddForm);
-    searchBtn.addEventListener('click', toggleSearch);
-    scanHeaderBtn.addEventListener("click", toggleScan);
+    scanHeaderBtn.addEventListener('click', toggleScan);
     // Clicking the porttracker logo/title reloads the page.
     document.getElementById('reloadHome').addEventListener('click', (e) => {
       e.preventDefault();
       location.reload();
     });
-    searchInput.addEventListener('input', async () => {
-      currentPage.value = 1;
-      await loadRecords();
-      render();
+
+    searchInput.addEventListener('input', () => {
+      searchClear.hidden = !searchInput.value;
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        pageQuery = 1;
+        syncHash();
+        loadRecords();
+      }, 250);
     });
-    sortSel.addEventListener('change', render);
-    statusSel.addEventListener('change', render);
+    searchClear.addEventListener('click', () => clearSearch());
+
+    for (const btn of chipButtons) {
+      btn.addEventListener('click', () => {
+        statusFilter = btn.dataset.status;
+        setActiveChip();
+        syncHash();
+        render();
+      });
+    }
+
+    sortSel.addEventListener('change', () => {
+      syncHash();
+      // Reload so Custom mode shows the stored order from the server instead
+      // of re-labelling the previously sorted page as "custom".
+      loadRecords().catch((err) => show(err.message, true));
+    });
     exportBtn.addEventListener('click', exportData);
     importBtn.addEventListener('click', () => importFile.click());
-    // Dropdown menu toggle
-    const actionsBtn = document.getElementById("actionsBtn");
-    const actionsMenu = document.getElementById("actionsMenu");
-    actionsBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const isHidden = actionsMenu.hidden;
-      actionsMenu.hidden = !isHidden;
-      actionsBtn.setAttribute("aria-expanded", String(!isHidden));
-    });
-    document.addEventListener("click", () => {
-      actionsMenu.hidden = true;
-      actionsBtn.setAttribute("aria-expanded", "false");
-    });
-    actionsMenu.addEventListener("click", (e) => {
-      e.stopPropagation();
-    });
     importFile.addEventListener('change', importData);
     prevPageBtn.addEventListener('click', () => { changePage(-1); });
     nextPageBtn.addEventListener('click', () => { changePage(1); });
@@ -1064,24 +1478,48 @@ tr.row-exit  { animation: rowFadeOut 0.2s ease-in forwards; }
       if (allRecords.length) await refreshStatuses();
     }, 10000);
 
+    // Restore view state from the URL hash before the first load
+    (function restoreView() {
+      const v = readHash();
+      searchInput.value = v.q;
+      if (v.q) searchClear.hidden = false;
+      pageQuery = v.page;
+      statusFilter = ['all', 'up', 'down'].includes(v.status) ? v.status : 'all';
+      sortSel.value = ['port', 'service', 'custom'].includes(v.sort) ? v.sort : 'port';
+      setActiveChip();
+    })();
+
     updateAddBtn();
+    updateScanBtn();
 
     // Keyboard shortcuts
-    document.addEventListener("keydown", (e) => {
-      // Ctrl+N or Cmd+N to toggle add form
-      if ((e.ctrlKey || e.metaKey) && e.key === "n") {
+    document.addEventListener('keydown', (e) => {
+      // Ctrl+N / Cmd+N or plain n toggles the add form
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
         e.preventDefault();
         toggleAddForm();
+        return;
       }
-      // Escape to close form, search, or scan
-      if (e.key === "Escape") {
+      const el = document.activeElement;
+      const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+      if (!typing && e.key === '/') {
+        // Jump to search
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+        return;
+      }
+      if (!typing && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
+        toggleAddForm();
+        return;
+      }
+      if (e.key === 'Escape') {
         if (!formCard.hidden) { hideAddForm(); return; }
-        if (!searchCard.hidden) { toggleSearch(); return; }
         if (!scanCard.hidden) { toggleScan(); return; }
+        if (el === searchInput && searchInput.value) { clearSearch(); }
       }
     });
-    updateSearchBtn();
-    updateScanBtn();
 
     loadRecords().catch((err) => show(err.message, true));
   </script>

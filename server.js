@@ -159,9 +159,10 @@ async function handleApi(req, res, url) {
   // GET /api/ports
   if (method === 'GET' && parts.join('/') === 'api/ports') {
     const records = await load();
-    const q = (req.url.split('q=')[1]?.split('&')[0] || '').toLowerCase();
-    const page = Math.max(1, Number(req.url.split('page=')[1]?.split('&')[0]) || 1);
-    const limit = Math.min(200, Math.max(1, Number(req.url.split('limit=')[1]?.split('&')[0]) || 50));
+    const params = url.searchParams;
+    const q = (params.get('q') || '').toLowerCase().trim();
+    const page = Math.max(1, Number(params.get('page')) || 1);
+    const limit = Math.min(200, Math.max(1, Number(params.get('limit')) || 50));
 
     const filtered = q 
       ? records.filter(r => 
@@ -172,13 +173,16 @@ async function handleApi(req, res, url) {
       : records;
 
     const start = (page - 1) * limit;
-    // Push favorited records to the front so they always land on page 1,
-    // then keep the rest in stable insertion order.
-    const sorted = [...filtered].sort((a, b) => {
-      if (a.favorite && !b.favorite) return -1;
-      if (!a.favorite && b.favorite) return 1;
-      return 0;
-    });
+    // sort=custom serves records in stored array order — the persisted manual
+    // arrangement. Otherwise favorites are pinned to the front so they always
+    // land on page 1, then the rest keep stable insertion order.
+    const sorted = params.get('sort') === 'custom'
+      ? filtered
+      : [...filtered].sort((a, b) => {
+          if (a.favorite && !b.favorite) return -1;
+          if (!a.favorite && b.favorite) return 1;
+          return 0;
+        });
     const paginated = sorted.slice(start, start + limit);
     return sendJson(res, 200, { records: paginated, total: filtered.length, page, limit });
   }
@@ -247,6 +251,60 @@ async function handleApi(req, res, url) {
 
     await save(records);
     return sendJson(res, 200, records[idx]);
+  }
+
+  // POST /api/ports/:id/move — reorder a record within the stored list.
+  // Body: { direction: "up"|"down" } swaps it with its adjacent record, or
+  // { beforeId: n } / { afterId: n } moves it next to a target record.
+  // The stored array order IS the persisted custom order (sort=custom serves it).
+  if (method === 'POST' && parts.join('/').match(/^api\/ports\/\d+\/move$/)) {
+    const id = Number(parts[2]);
+    const body = await readBody(req);
+    const records = await load();
+    const idx = records.findIndex((r) => r.id === id);
+    if (idx === -1) return sendJson(res, 404, { error: 'not found' });
+
+    const direction = body?.direction;
+    const beforeId = body?.beforeId !== undefined ? Number(body.beforeId) : undefined;
+    const afterId = body?.afterId !== undefined ? Number(body.afterId) : undefined;
+
+    if (direction !== undefined && (beforeId !== undefined || afterId !== undefined)) {
+      return sendJson(res, 400, { error: 'send direction or beforeId/afterId, not both' });
+    }
+    if (beforeId !== undefined && afterId !== undefined) {
+      return sendJson(res, 400, { error: 'send beforeId or afterId, not both' });
+    }
+
+    if (direction === 'up' || direction === 'down') {
+      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= records.length) {
+        return sendJson(res, 400, { error: `already at the ${direction === 'up' ? 'top' : 'bottom'}` });
+      }
+      [records[idx], records[targetIdx]] = [records[targetIdx], records[idx]];
+      await save(records);
+      return sendJson(res, 200, records[targetIdx]); // the moved record now sits here
+    }
+    if (direction !== undefined) {
+      return sendJson(res, 400, { error: 'direction must be "up" or "down"' });
+    }
+    if (beforeId !== undefined && (!Number.isInteger(beforeId) || beforeId < 1)) {
+      return sendJson(res, 400, { error: 'beforeId must be a record id' });
+    }
+    if (afterId !== undefined && (!Number.isInteger(afterId) || afterId < 1)) {
+      return sendJson(res, 400, { error: 'afterId must be a record id' });
+    }
+
+    const targetId = beforeId ?? afterId; // exactly one is defined here
+    const targetIdx = records.findIndex((r) => r.id === targetId);
+    if (targetIdx === -1) return sendJson(res, 404, { error: 'target record not found' });
+    if (targetIdx === idx) return sendJson(res, 200, records[idx]); // dropped on itself
+
+    const [moved] = records.splice(idx, 1);
+    let insertAt = records.findIndex((r) => r.id === targetId);
+    if (afterId !== undefined) insertAt += 1; // land just after the target
+    records.splice(insertAt, 0, moved);
+    await save(records);
+    return sendJson(res, 200, moved);
   }
 
   // DELETE /api/ports/:id
