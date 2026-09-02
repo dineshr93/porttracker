@@ -4,7 +4,8 @@
   "description": "Minimalistic CRUD webapp to remember which service runs on which local host port.",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "check": "node --check server.js"
   },
   "engines": {
     "node": ">=18"

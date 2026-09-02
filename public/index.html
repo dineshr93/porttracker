@@ -1428,7 +1428,11 @@
         }
       } catch (err) {
         scanResult.textContent = 'Scan failed';
-        scanResults.innerHTML = `<div class="err">${err.message}</div>`;
+        const errDiv = document.createElement('div');
+        errDiv.className = 'err';
+        errDiv.textContent = err.message || 'Scan failed';
+        scanResults.textContent = '';
+        scanResults.appendChild(errDiv);
       }
     });
 

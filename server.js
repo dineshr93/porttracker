@@ -15,6 +15,18 @@ const PORT = Number(process.env.PORT || 3000);
 // --- Scan host (for port probing) -------------------------------------
 const SCAN_HOST = process.env.SCAN_HOST || "127.0.0.1";
 
+// --- Shared helpers ----------------------------------------------------
+const log = (...args) => console.log(new Date().toISOString(), ...args);
+
+// All data-file reads/writes are serialized through this lock so concurrent
+// requests cannot interleave read-modify-write cycles (lost updates).
+let storeLockTail = Promise.resolve();
+function withStoreLock(fn) {
+  const result = storeLockTail.then(() => fn());
+  storeLockTail = result.catch(() => {});
+  return result;
+}
+
 // --- Undo (in-memory, session-only) ------------------------------------
 let lastDeleted = null;
 
@@ -88,7 +100,11 @@ async function migrateFromLegacy() {
 
 async function save(records) {
   await fs.mkdir(path.dirname(DATA_FILE), { recursive: true });
-  await fs.writeFile(DATA_FILE, JSON.stringify({ records }, null, 2));
+  // Atomic write: write a temp file first, then rename over the target so a
+  // crash mid-write can never leave data.json truncated or corrupt.
+  const tmp = DATA_FILE + '.tmp';
+  await fs.writeFile(tmp, JSON.stringify({ records }, null, 2));
+  await fs.rename(tmp, DATA_FILE);
 }
 
 // --- Validation --------------------------------------------------------
@@ -127,24 +143,53 @@ function validate(body, partial = false) {
   if (!partial && body.port === undefined && body.service === undefined) {
     errs.push('port and service are required');
   }
+  if (partial) {
+    const touched = ['port', 'service', 'endpoints', 'description', 'notes', 'favorite']
+      .some((k) => body[k] !== undefined);
+    if (!touched) errs.push('no fields to update');
+  }
   return errs;
 }
 
 // --- Helpers -----------------------------------------------------------
 function sendJson(res, status, payload) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'X-Content-Type-Options': 'nosniff',
+    'Cache-Control': 'no-store',
+  });
   res.end(JSON.stringify(payload));
 }
+
+const MAX_BODY_BYTES = 1_000_000; // 1 MiB — generous for this API's small payloads
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on('data', (c) => chunks.push(c));
+    let size = 0;
+    let rejected = false;
+    const tooLarge = () => {
+      rejected = true;
+      chunks.length = 0;
+      const err = new Error('request body exceeds 1 MiB');
+      err.status = 413;
+      reject(err);
+      req.resume(); // drain so the client can still read the response
+      return err;
+    };
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > MAX_BODY_BYTES) tooLarge();
+      else chunks.push(c);
+    });
     req.on('end', () => {
+      if (rejected) return;
       try {
         const text = Buffer.concat(chunks).toString('utf8');
         resolve(text ? JSON.parse(text) : {});
-      } catch (err) {
+      } catch {
+        const err = new Error('invalid JSON body');
+        err.status = 400;
         reject(err);
       }
     });
@@ -371,21 +416,15 @@ async function handleApi(req, res, url) {
         endpoints,
         notes: typeof rec.notes === 'string' ? rec.notes.trim() : '',
         favorite: rec.favorite === true,
-        createdAt: rec.createdAt || new Date().toISOString(),
-        updatedAt: rec.updatedAt || new Date().toISOString(),
+        createdAt: typeof rec.createdAt === 'string' && rec.createdAt ? rec.createdAt : new Date().toISOString(),
+        updatedAt: typeof rec.updatedAt === 'string' && rec.updatedAt ? rec.updatedAt : new Date().toISOString(),
       });
     }
     if (errs.length) return sendJson(res, 400, { error: errs.join('; ') });
 
+    // Re-assign IDs to ensure they are sequential and unique after import.
     let maxId = 0;
     for (const r of clean) maxId = Math.max(maxId, Number(r.id) || 0);
-    // Re-assign IDs to ensure they are sequential and unique after import
-    // Note: This might change IDs, but it's generally okay for an import.
-    // Let's try to preserve existing IDs if they are valid and don't collide.
-    // Actually, the original code just did maxId + i + 1. Let's stick to that for simplicity.
-    // But we must ensure we don't lose the existing IDs if we want to keep it simple.
-    // The original code: const records = clean.map((r, i) => ({ ...r, id: maxId + i + 1 }));
-    // This is fine.
     const records = clean.map((r, i) => ({ ...r, id: maxId + i + 1 }));
     await save(records);
     return sendJson(res, 200, { count: records.length });
@@ -404,32 +443,33 @@ async function handleApi(req, res, url) {
     const from = Math.max(1, Math.min(65535, Number(body?.from) || 1));
     const to = Math.max(1, Math.min(65535, Number(body?.to) || 65535));
     if (from > to) return sendJson(res, 400, { error: 'from must be <= to' });
+    if (to - from > 1023) {
+      return sendJson(res, 400, { error: 'scan at most 1024 ports per request' });
+    }
 
     const records = await load();
-    const existingPorts = new Set(records.map(r => r.port));
+
+    // Probe all ports in the range concurrently, in batches, so a slow host
+    // doesn't serialize 1200ms timeouts into a multi-minute request.
+    const batches = [];
+    for (let start = from; start <= to; start += 50) {
+      const end = Math.min(start + 49, to);
+      const ports = [];
+      for (let p = start; p <= end; p++) ports.push(p);
+      batches.push(ports);
+    }
 
     const open = [];
-    // Scan in batches to avoid overwhelming the system
-    const batchSize = 50;
-    for (let start = from; start <= to; start += batchSize) {
-      const end = Math.min(start + batchSize - 1, to);
-      const batch = [];
-      for (let p = start; p <= end; p++) {
-        batch.push(p);
-      }
-      const results = await Promise.all(batch.map(async (p) => {
-        const up = await probePort(p);
-        return { port: p, up };
-      }));
-      for (const r of results) {
-        if (r.up) {
-          const match = records.find(rec => rec.port === r.port);
-          open.push({
-            port: r.port,
-            service: match ? match.service : null,
-            known: !!match,
-          });
-        }
+    const batchResults = await Promise.all(
+      batches.map((batch) =>
+        Promise.all(batch.map(async (p) => ({ port: p, up: await probePort(p) })))
+      )
+    );
+    for (const batch of batchResults) {
+      for (const r of batch) {
+        if (!r.up) continue;
+        const match = records.find(rec => rec.port === r.port);
+        open.push({ port: r.port, service: match ? match.service : null, known: !!match });
       }
     }
     return sendJson(res, 200, { open, scanned: { from, to } });
@@ -441,6 +481,9 @@ async function handleApi(req, res, url) {
     const record = lastDeleted.record;
     // Re-assign a fresh id to avoid collisions
     const allRecords = await load();
+    if (allRecords.some((r) => r.port === record.port)) {
+      return sendJson(res, 409, { error: `port ${record.port} is used by another mapping — undo it first` });
+    }
     const maxId = allRecords.reduce((m, r) => Math.max(m, r.id), 0);
     record.id = maxId + 1;
     record.updatedAt = new Date().toISOString();
@@ -459,19 +502,32 @@ function nextId(records) {
 }
 
 // --- Static files ------------------------------------------------------
-async function serveStatic(res, pathname) {
-  const requested = pathname === '/' ? '/index.html' : pathname;
-  const filePath = path.join(__dirname, 'public', requested);
-  const resolved = path.resolve(filePath);
+const PUBLIC_ROOT = path.resolve(__dirname, 'public');
 
-  if (!resolved.startsWith(path.resolve(__dirname, 'public'))) {
-    res.writeHead(403).end('Forbidden');
-    return;
+async function serveStatic(res, method, pathname) {
+  if (method !== 'GET' && method !== 'HEAD') {
+    res.writeHead(405, { Allow: 'GET, HEAD', 'X-Content-Type-Options': 'nosniff' });
+    return res.end();
+  }
+
+  const requested = pathname === '/' ? '/index.html' : pathname;
+  const resolved = path.resolve(path.join(PUBLIC_ROOT, requested));
+
+  // Block path traversal (.., odd siblings like /publicX) and, after read,
+  // symlink escapes from public/.
+  const inPublic = (p) => p === PUBLIC_ROOT || p.startsWith(PUBLIC_ROOT + path.sep);
+  if (!inPublic(resolved)) {
+    res.writeHead(403, { 'X-Content-Type-Options': 'nosniff' });
+    return res.end('Forbidden');
   }
 
   try {
     const data = await fs.readFile(resolved);
-    const ext = path.extname(resolved).toLowerCase();
+    const real = await fs.realpath(resolved);
+    if (!inPublic(real)) {
+      res.writeHead(403, { 'X-Content-Type-Options': 'nosniff' });
+      return res.end('Forbidden');
+    }
     const types = {
       '.html': 'text/html; charset=utf-8',
       '.js': 'text/javascript; charset=utf-8',
@@ -479,10 +535,17 @@ async function serveStatic(res, pathname) {
       '.json': 'application/json; charset=utf-8',
       '.svg': 'image/svg+xml',
     };
-    res.writeHead(200, { 'Content-Type': types[ext] || 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': types[path.extname(real).toLowerCase()] || 'application/octet-stream',
+      'Cache-Control': path.extname(real).toLowerCase() === '.html' ? 'no-store' : 'no-cache',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'no-referrer',
+    });
+    if (method === 'HEAD') return res.end();
     res.end(data);
   } catch {
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'X-Content-Type-Options': 'nosniff' });
     res.end('Not found');
   }
 }
@@ -491,16 +554,46 @@ async function serveStatic(res, pathname) {
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    if (url.pathname.startsWith('/api/')) {
-      await handleApi(req, res, url);
+    const pathname = url.pathname;
+    if (pathname === '/health') await handleApi(req, res, url);
+    else if (pathname.startsWith('/api/')) {
+      // The scan endpoint only reads data and can run for seconds — keep it
+      // outside the store lock so it never blocks CRUD requests.
+      if (pathname === '/api/ports/scan') await handleApi(req, res, url);
+      else await withStoreLock(() => handleApi(req, res, url));
     } else {
-      await serveStatic(res, url.pathname);
+      await serveStatic(res, req.method, url.pathname);
     }
   } catch (err) {
-    sendJson(res, 500, { error: err.message });
+    const status = err?.status || 500;
+    if (status >= 500) log(`error handling ${req.method} ${req.url}: ${err?.stack || err}`);
+    if (res.writableEnded || res.destroyed) return;
+    if (res.headersSent) { res.destroy(); return; }
+    sendJson(res, status, status >= 500 ? { error: 'internal server error' } : { error: err?.message || 'bad request' });
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`porttracker running at http://localhost:${PORT}`);
+server.on('error', (err) => {
+  if (err?.code === 'EADDRINUSE') {
+    log(`port ${PORT} is already in use`);
+    process.exit(1);
+  }
+  throw err;
 });
+
+server.listen(PORT, () => {
+  log(`porttracker running at http://localhost:${PORT} (data: ${DATA_FILE})`);
+});
+
+// Graceful shutdown: stop accepting connections, let in-flight requests
+// finish (saves are atomic), then exit — SIGTERM/SIGINT never corrupt data.
+let shuttingDown = false;
+for (const sig of ['SIGTERM', 'SIGINT']) {
+  process.on(sig, () => {
+    if (shuttingDown) process.exit(1); // second signal forces exit
+    shuttingDown = true;
+    log(`${sig} received — shutting down`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 5000).unref();
+  });
+}
