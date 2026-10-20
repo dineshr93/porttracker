@@ -3,10 +3,12 @@
 FROM node:22-alpine
 
 ENV NODE_ENV=production
+ENV PORTTRACKERDIR=/data
 WORKDIR /app
 
 COPY package.json ./
 COPY server.js ./
+COPY smoke.js ./
 COPY public ./public
 
 # /data is the default bind-mount point (CONTAINER_DATA in the Makefile);
@@ -16,6 +18,8 @@ USER node
 
 # Container's listening port (configurable at run time via PORT env var).
 EXPOSE 3000
+
+STOPSIGNAL SIGTERM
 
 # Zero-dependency healthcheck via Node's built-in fetch.
 HEALTHCHECK --start-period=5s --interval=30s --timeout=3s \

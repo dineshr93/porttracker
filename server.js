@@ -11,6 +11,10 @@ const DATA_DIR = process.env.PORTTRACKERDIR
   : path.join(os.homedir(), '.porttracker');
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
 const PORT = Number(process.env.PORT || 3000);
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
+  console.error(`invalid PORT "${process.env.PORT}" — expected an integer 1-65535`);
+  process.exit(1);
+}
 
 // --- Scan host (for port probing) -------------------------------------
 const SCAN_HOST = process.env.SCAN_HOST || "127.0.0.1";
@@ -152,10 +156,33 @@ function validate(body, partial = false) {
 }
 
 // --- Helpers -----------------------------------------------------------
+// Headers every response carries. The CSP allows the inline script/style the
+// single-page UI uses and browser-side port probing to any http(s) host, while
+// still blocking external script/style loads and framing.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "connect-src 'self' http: https:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer',
+  'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+  'Content-Security-Policy': CSP,
+};
+
 function sendJson(res, status, payload) {
   res.writeHead(status, {
+    ...SECURITY_HEADERS,
     'Content-Type': 'application/json; charset=utf-8',
-    'X-Content-Type-Options': 'nosniff',
     'Cache-Control': 'no-store',
   });
   res.end(JSON.stringify(payload));
@@ -368,8 +395,10 @@ async function handleApi(req, res, url) {
   if (method === 'GET' && parts.join('/') === 'api/export') {
     const records = await load();
     res.writeHead(200, {
+      ...SECURITY_HEADERS,
       'Content-Type': 'application/json; charset=utf-8',
       'Content-Disposition': `attachment; filename="porttracker-export.json"`,
+      'Cache-Control': 'no-store',
     });
     res.end(JSON.stringify({ records }, null, 2));
     return;
@@ -506,7 +535,7 @@ const PUBLIC_ROOT = path.resolve(__dirname, 'public');
 
 async function serveStatic(res, method, pathname) {
   if (method !== 'GET' && method !== 'HEAD') {
-    res.writeHead(405, { Allow: 'GET, HEAD', 'X-Content-Type-Options': 'nosniff' });
+    res.writeHead(405, { ...SECURITY_HEADERS, Allow: 'GET, HEAD' });
     return res.end();
   }
 
@@ -517,7 +546,7 @@ async function serveStatic(res, method, pathname) {
   // symlink escapes from public/.
   const inPublic = (p) => p === PUBLIC_ROOT || p.startsWith(PUBLIC_ROOT + path.sep);
   if (!inPublic(resolved)) {
-    res.writeHead(403, { 'X-Content-Type-Options': 'nosniff' });
+    res.writeHead(403, SECURITY_HEADERS);
     return res.end('Forbidden');
   }
 
@@ -525,7 +554,7 @@ async function serveStatic(res, method, pathname) {
     const data = await fs.readFile(resolved);
     const real = await fs.realpath(resolved);
     if (!inPublic(real)) {
-      res.writeHead(403, { 'X-Content-Type-Options': 'nosniff' });
+      res.writeHead(403, SECURITY_HEADERS);
       return res.end('Forbidden');
     }
     const types = {
@@ -536,16 +565,14 @@ async function serveStatic(res, method, pathname) {
       '.svg': 'image/svg+xml',
     };
     res.writeHead(200, {
+      ...SECURITY_HEADERS,
       'Content-Type': types[path.extname(real).toLowerCase()] || 'application/octet-stream',
       'Cache-Control': path.extname(real).toLowerCase() === '.html' ? 'no-store' : 'no-cache',
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
-      'Referrer-Policy': 'no-referrer',
     });
     if (method === 'HEAD') return res.end();
     res.end(data);
   } catch {
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'X-Content-Type-Options': 'nosniff' });
+    res.writeHead(404, { ...SECURITY_HEADERS, 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Not found');
   }
 }
@@ -593,7 +620,10 @@ for (const sig of ['SIGTERM', 'SIGINT']) {
     if (shuttingDown) process.exit(1); // second signal forces exit
     shuttingDown = true;
     log(`${sig} received — shutting down`);
+    // Stop accepting new connections and drop idle keep-alive sockets so
+    // close() can actually complete instead of waiting on parked clients.
     server.close(() => process.exit(0));
+    server.closeIdleConnections?.();
     setTimeout(() => process.exit(0), 5000).unref();
   });
 }

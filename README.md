@@ -163,7 +163,14 @@ make run DATA_DIR=/custom   # persist data somewhere else (default ~/.porttracke
 make build  # remove old image + clean (no-cache) build only
 make clean  # remove old image and containers
 make stop   # stop/remove the running container
+make verify # wait for healthy + in-container health/API CRUD smoke test
 ```
+
+`make run` starts the container hardened: `--restart unless-stopped`, `--init`,
+`--read-only` rootfs (only the mounted data dir and a tmpfs `/tmp` are
+writable), `--cap-drop ALL`, and `no-new-privileges`. It then runs
+`make verify`, which fails the deploy if the healthcheck or the API smoke test
+fails.
 
 Run it on the default port 3000:
 
