@@ -11,9 +11,15 @@
       --bg-grad-2: #07080c;
       --card: #14171c;
       --card-border: #23272f;
+      --surface: #0d0f13;        /* inputs, search bg, select options */
+      --surface-2: #1a1e24;      /* buttons, add-btn bg */
+      --hover: #20242c;          /* hover backgrounds */
+      --border-strong: #2e333d;  /* hover borders */
+      --dim: #565b63;            /* placeholder, unknown dot */
+      --on-accent: #06283a;      /* text/icons on accent gradient */
       --text: #e8eaf0;
-      --muted: #8a8f98;
-      --accent: #22d3ee;          /* cyan */
+      --muted: #9aa3af;          /* lifted for 4.5:1+ contrast */
+      --accent: #22d3ee;
       --accent-strong: #0ea5e9;
       --accent-soft: rgba(34, 211, 238, 0.12);
       --danger: #f87171;
@@ -21,10 +27,12 @@
       --green: #34d399;
       --gold: #fbbf24;
       --radius: 14px;
+      --radius-sm: 9px;
       --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
       color-scheme: dark;
     }
     * { box-sizing: border-box; margin: 0; }
+    ::selection { background: var(--accent-soft); }
     html, body { height: 100%; }
     body {
       font-family: system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
@@ -50,13 +58,13 @@
     .header-actions { display: flex; align-items: center; gap: 0.75rem; }
     .logo-row { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: inherit; }
     .logo {
-      width: 34px; height: 34px; border-radius: 9px;
+      width: 34px; height: 34px; border-radius: var(--radius-sm);
       background: linear-gradient(135deg, var(--accent), var(--accent-strong));
       display: grid; place-items: center;
-      box-shadow: 0 0 18px rgba(34, 211, 238, 0.35);
+      box-shadow: 0 0 18px rgba(34, 211, 238, 0.35); /* accent glows */
       flex-shrink: 0;
     }
-    .logo svg { width: 18px; height: 18px; fill: #06283a; }
+    .logo svg { width: 18px; height: 18px; fill: var(--on-accent); color: var(--on-accent); }
     h1 {
       font-size: 1.7rem; font-weight: 700; letter-spacing: -0.02em;
       background: linear-gradient(90deg, #fff, var(--accent));
@@ -68,18 +76,18 @@
       width: 42px; height: 42px;
       display: flex; align-items: center; justify-content: center;
       padding: 0;
-      border-radius: 11px;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--card-border);
-      background: #1a1e24;
+      background: var(--surface-2);
       color: var(--accent);
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.12s;
     }
     .add-btn:hover {
-      background: #20242c;
+      background: var(--hover);
       border-color: var(--accent);
       color: var(--accent-strong);
-      box-shadow: 0 0 14px rgba(34, 211, 238, 0.25);
+      box-shadow: 0 0 14px rgba(34, 211, 238, 0.25); /* accent glows */
     }
     .add-btn:active { transform: scale(0.96); }
     .add-btn svg {
@@ -118,7 +126,7 @@
     /* Search — always visible, primary placement in the table card */
     .search-bar {
       display: flex; align-items: center; gap: 0.6rem;
-      background: #0d0f13;
+      background: var(--surface);
       border: 1px solid var(--card-border);
       border-radius: 12px;
       padding: 0.55rem 0.85rem;
@@ -137,13 +145,13 @@
       color: var(--text); font: inherit;
     }
     .search-bar input:focus { outline: none; }
-    .search-bar input::placeholder { color: #565b63; }
+    .search-bar input::placeholder { color: var(--dim); }
     .search-bar input::-webkit-search-cancel-button,
     .search-bar input::-webkit-search-decoration { -webkit-appearance: none; display: none; }
     .search-bar .kbd {
       font-size: 0.75rem; color: var(--muted);
       border: 1px solid var(--card-border); border-radius: 6px;
-      padding: 0.1rem 0.45rem; background: #14171c; flex-shrink: 0;
+      padding: 0.1rem 0.45rem; background: var(--card); flex-shrink: 0;
     }
     #searchClear {
       width: 26px; height: 26px; padding: 0;
@@ -152,7 +160,7 @@
       color: var(--muted); cursor: pointer; flex-shrink: 0;
       transition: color 0.15s, background 0.15s;
     }
-    #searchClear:hover { color: var(--text); background: #20242c; }
+    #searchClear:hover { color: var(--text); background: var(--hover); }
     #searchClear svg { width: 14px; height: 14px; }
     #searchClear[hidden] { display: none; }
 
@@ -164,10 +172,10 @@
       width: 100%;
       padding: 0.6rem 0.75rem;
       border: 1px solid var(--card-border);
-      border-radius: 9px;
+      border-radius: var(--radius-sm);
       font: inherit;
       color: var(--text);
-      background: #0d0f13;
+      background: var(--surface);
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     input[type="checkbox"] { width: auto; }
@@ -177,34 +185,34 @@
       box-shadow: 0 0 0 3px var(--accent-soft);
     }
     textarea { resize: vertical; min-height: 4.5rem; }
-    select option { background: #0d0f13; }
-    ::placeholder { color: #565b63; }
+    select option { background: var(--surface); }
+    ::placeholder { color: var(--dim); }
 
     .actions { display: flex; gap: 0.6rem; margin-top: 0.35rem; }
     button {
       font: inherit; font-weight: 600;
       padding: 0.55rem 1rem;
       border: 1px solid var(--card-border);
-      border-radius: 9px;
-      background: #1a1e24;
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
       color: var(--text);
       cursor: pointer;
       transition: transform 0.12s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
     }
-    button:hover { background: #20242c; border-color: #2e333d; }
+    button:hover { background: var(--hover); border-color: var(--border-strong); }
     button:active { transform: translateY(1px); }
     button:disabled { opacity: 0.45; cursor: default; }
     button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     button.primary {
       background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      border-color: transparent; color: #06283a;
+      border-color: transparent; color: var(--on-accent);
       box-shadow: 0 4px 16px rgba(34, 211, 238, 0.25);
     }
     button.primary:hover { filter: brightness(1.08); box-shadow: 0 6px 20px rgba(34, 211, 238, 0.35); }
     button.danger { color: var(--danger); border-color: transparent; background: var(--danger-soft); }
     button.danger:hover { background: rgba(248, 113, 113, 0.22); }
     button.ghost { background: transparent; color: var(--muted); }
-    button.ghost:hover { color: var(--text); background: #20242c; }
+    button.ghost:hover { color: var(--text); background: var(--hover); }
 
     /* Table */
     .table-card { padding: 1.1rem 1.4rem 1.4rem; }
@@ -248,7 +256,7 @@
       color: var(--muted); cursor: pointer;
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
-    .icon-btn:hover { background: #20242c; color: var(--text); border-color: var(--card-border); }
+    .icon-btn:hover { background: var(--hover); color: var(--text); border-color: var(--card-border); }
     .icon-btn svg { width: 16px; height: 16px; display: block; }
     .icon-btn.fav-on { color: var(--gold); }
     .icon-btn.fav-on:hover { color: var(--gold); }
@@ -280,7 +288,7 @@
     .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; flex-shrink: 0; }
     .dot.up { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.55); }
     .dot.down { background: var(--danger); box-shadow: 0 0 8px rgba(248,113,113,0.55); }
-    .dot.unknown { background: #565b63; }
+    .dot.unknown { background: var(--dim); }
     .status-label { font-size: 0.82rem; color: var(--muted); }
     .status-label.up { color: var(--green); }
     .status-label.down { color: var(--danger); }
@@ -296,12 +304,12 @@
       display: inline-flex; align-items: center; gap: 0.35rem;
       padding: 0.3rem 0.75rem; border-radius: 999px;
       font-size: 0.85rem; font-weight: 600;
-      border: 1px solid var(--card-border); background: #14171c; color: var(--muted);
+      border: 1px solid var(--card-border); background: var(--card); color: var(--muted);
       cursor: pointer;
       transition: color 0.15s, background 0.15s, border-color 0.15s;
     }
-    .chip:hover { color: var(--text); border-color: #2e333d; background: #1a1e24; }
-    .chip.active { color: var(--accent); border-color: rgba(34,211,238,0.5); background: var(--accent-soft); }
+    .chip:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
+    .chip.active { color: var(--accent); border-color: rgba(34,211,238,0.5); background: var(--accent-soft); } /* accent glows */
     .chip.up.active { color: var(--green); border-color: rgba(52,211,153,0.5); background: rgba(52,211,153,0.12); }
     .chip.down.active { color: var(--danger); border-color: rgba(248,113,113,0.5); background: var(--danger-soft); }
     .chip .count { font-size: 0.75rem; font-weight: 700; opacity: 0.8; }
@@ -440,20 +448,78 @@
         max-width: none;
       }
     }
+
+    a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+    tbody tr:focus-within { background: rgba(255,255,255,0.025); }
+
+    /* Skeleton placeholders */
+    @keyframes shimmer { to { background-position: 200% 0; } }
+    .skel-bar {
+      display: inline-block; height: 0.9em; border-radius: 6px;
+      background: linear-gradient(90deg, var(--card-border) 25%, var(--hover) 50%, var(--card-border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s linear infinite;
+    }
+    .skel-row td { border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+    /* Toasts */
+    #toastHost {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      z-index: 100; pointer-events: none; max-width: min(90vw, 560px);
+    }
+    .toast {
+      pointer-events: auto;
+      display: flex; align-items: center; gap: 0.75rem;
+      background: var(--card); border: 1px solid var(--card-border);
+      border-radius: 10px; padding: 0.6rem 1.2rem; box-shadow: var(--shadow);
+      color: var(--text); font-size: 0.9rem;
+    }
+    .toast.err { border-color: rgba(248,113,113,0.5); color: var(--danger); }
+    .toast.msg { border-color: rgba(52,211,153,0.4); color: var(--green); }
+    .toast .toast-action { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toastOut { to { opacity: 0; transform: translateY(8px); } }
+    .toast.toast-in { animation: toastIn 0.2s ease-out; }
+    .toast.toast-out { animation: toastOut 0.2s ease-in forwards; }
+
+    /* Confirm/cancel small buttons in row actions */
+    button.confirm-sm { font-size: 0.78rem; padding: 0.25rem 0.55rem; }
+    .is-hidden { display: none !important; }
+
+    /* Scan card form controls (replacing inline styles) */
+    .scan-controls { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+    .scan-controls .field { display: flex; flex-direction: column; gap: 0.2rem; }
+    .scan-controls label { font-size: 0.8rem; color: var(--muted); }
+    .scan-controls input { width: 5rem; }
+    .scan-hint { color: var(--muted); font-size: 0.85rem; margin-bottom: 0.75rem; }
+    #scanResult { color: var(--muted); font-size: 0.85rem; }
+    .fav-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+    #scanResults { margin-top: 0.75rem; }
+
+    /* Reduced motion: kill every animation/transition */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
   </style>
 </head>
 <body>
-  <div id="undoToast" style="display:none;position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:0.6rem 1.2rem;box-shadow:var(--shadow);z-index:100;color:var(--text);font-size:0.9rem;align-items:center;gap:0.75rem;">
-    <span id="undoMsg"></span>
-    <button id="undoBtn" class="primary" style="padding:0.3rem 0.7rem;font-size:0.8rem;">Undo</button>
-    <button id="undoDismiss" class="ghost" style="padding:0.3rem 0.5rem;font-size:0.8rem;">✕</button>
-  </div>
+  <div id="toastHost" aria-live="polite"></div>
   <div class="wrap">
     <header>
       <div>
         <a class="logo-row" href="#" id="reloadHome" title="Reload porttracker" aria-label="Reload porttracker">
           <div class="logo" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M4 9l8-6 8 6-8 6-8-6z"/><path d="M4 15l8 6 8-6" fill="none" stroke="#06283a" stroke-width="2"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M4 9l8-6 8 6-8 6-8-6z"/><path d="M4 15l8 6 8-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
           </div>
           <h1>porttracker</h1>
         </a>
@@ -471,22 +537,21 @@
 
     <div class="card" id="scanCard" hidden>
       <h2>Scan ports</h2>
-      <p style="color:var(--muted);font-size:0.85rem;margin-bottom:0.75rem;">Probe a range of TCP ports on this host to discover running services. Open ports can be added as mappings directly from the results.</p>
-      <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
-        <div>
-          <label for="scanFrom" style="font-size:0.8rem;color:var(--muted);">From</label>
-          <input id="scanFrom" type="number" min="1" max="65535" value="8000" style="width:5rem;">
+      <p class="scan-hint">Probe a range of TCP ports on this host to discover running services. Open ports can be added as mappings directly from the results.</p>
+      <div class="scan-controls">
+        <div class="field">
+          <label for="scanFrom">From</label>
+          <input id="scanFrom" type="number" min="1" max="65535" value="8000">
         </div>
-        <div>
-          <label for="scanTo" style="font-size:0.8rem;color:var(--muted);">To</label>
-          <input id="scanTo" type="number" min="1" max="65535" value="8100" style="width:5rem;">
+        <div class="field">
+          <label for="scanTo">To</label>
+          <input id="scanTo" type="number" min="1" max="65535" value="8100">
         </div>
         <button id="scanBtn" class="primary" type="button">Scan</button>
-        <span id="scanResult" style="color:var(--muted);font-size:0.85rem;"></span>
+        <span id="scanResult"></span>
       </div>
-      <div id="scanResults" style="margin-top:0.75rem;"></div>
+      <div id="scanResults"></div>
     </div>
-
     <div class="card" id="formCard" hidden>
       <h2 id="formTitle">Add a port mapping</h2>
       <form id="form">
@@ -507,7 +572,7 @@
           <input id="notes" type="text" placeholder="e.g. production DB, needs restart after deploy">
         </div>
         <div class="full">
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+          <label class="fav-label">
             <input id="favorite" type="checkbox">
             <span>⭐ Favorite (pins to top)</span>
           </label>
@@ -517,7 +582,6 @@
           <button class="ghost" type="button" id="resetBtn" hidden>Cancel edit</button>
         </div>
       </form>
-      <div id="feedback" aria-live="polite"></div>
     </div>
 
     <div class="card table-card">
@@ -571,7 +635,6 @@
     const tbody = document.getElementById('tbody');
     const empty = document.getElementById('empty');
     const form = document.getElementById('form');
-    const feedback = document.getElementById('feedback');
     const formTitle = document.getElementById('formTitle');
     const resetBtn = document.getElementById('resetBtn');
     const addBtn = document.getElementById('addBtn');
@@ -600,10 +663,6 @@
     const scanResults = document.getElementById('scanResults');
     const prevPageBtn = document.getElementById('prevPageBtn');
     const nextPageBtn = document.getElementById('nextPageBtn');
-    const undoToast = document.getElementById('undoToast');
-    const undoMsg = document.getElementById('undoMsg');
-    const undoBtn = document.getElementById('undoBtn');
-    const undoDismiss = document.getElementById('undoDismiss');
 
     let editingId = null;
     let allRecords = [];
@@ -617,7 +676,6 @@
     const pageSize = 20;
     let statusFilter = 'all';
     let lastDeletedRecord = null;
-    let undoToastTimer = null;
     let deletingId = null;
     let searchDebounce = null;
     let dragActive = false;      // a drag is in progress — pause re-renders
@@ -634,13 +692,31 @@
       return data;
     }
 
-    function show(msg, isErr = false) {
-      feedback.innerHTML = '';
+    function toast(msg, { type = 'msg', actionLabel = '', onAction = null, timeoutMs = 4000 } = {}) {
       const el = document.createElement('div');
-      el.className = isErr ? 'err' : 'msg';
-      el.textContent = msg;
-      feedback.appendChild(el);
-      setTimeout(() => el.remove(), 4000);
+      el.className = `toast ${type} toast-in`;
+      const span = document.createElement('span');
+      span.textContent = msg;
+      el.appendChild(span);
+      let timer = null;
+      if (actionLabel) {
+        const btn = document.createElement('button');
+        btn.className = 'toast-action';
+        btn.textContent = actionLabel;
+        btn.addEventListener('click', () => { clearTimeout(timer); dismiss(); onAction?.(); });
+        el.appendChild(btn);
+      }
+      function dismiss() {
+        el.classList.remove('toast-in');
+        el.classList.add('toast-out');
+        el.addEventListener('animationend', () => el.remove(), { once: true });
+      }
+      timer = setTimeout(() => dismiss(), timeoutMs);
+      document.getElementById('toastHost').appendChild(el);
+      return el;
+    }
+    function show(msg, isErr = false) {
+      toast(msg, { type: isErr ? 'err' : 'msg' });
     }
 
     function probeHost() {
@@ -699,7 +775,25 @@
       render();
     }
 
+    function showSkeleton(n = 5) {
+      tbody.innerHTML = '';
+      empty.hidden = true;
+      for (let i = 0; i < n; i++) {
+        const tr = document.createElement('tr');
+        tr.className = 'skel-row';
+        for (let c = 0; c < 6; c++) {
+          const td = document.createElement('td');
+          const bar = document.createElement('span');
+          bar.className = 'skel-bar';
+          bar.style.width = `${[64, 90, 140, 110, 160, 72][c]}px`;
+          td.appendChild(bar);
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+    }
     async function loadRecords() {
+      showSkeleton();
       const params = new URLSearchParams({
         page: String(pageQuery),
         limit: String(pageSize),
@@ -940,21 +1034,19 @@
           // Inline confirmation replaces the icon buttons
           const confirmBtn = document.createElement('button');
           confirmBtn.textContent = 'Confirm';
-          confirmBtn.className = 'danger';
-          confirmBtn.style.cssText = 'font-size:0.78rem;padding:0.25rem 0.55rem;';
+          confirmBtn.className = 'danger confirm-sm';
           confirmBtn.addEventListener('click', () => confirmDelete(r));
           const cancelBtn = document.createElement('button');
           cancelBtn.textContent = 'Cancel';
-          cancelBtn.className = 'ghost';
-          cancelBtn.style.cssText = 'font-size:0.78rem;padding:0.25rem 0.55rem;';
+          cancelBtn.className = 'ghost confirm-sm';
           cancelBtn.addEventListener('click', () => cancelDelete());
-          favBtn.style.display = 'none';
-          copyBtn.style.display = 'none';
-          editBtn.style.display = 'none';
-          delBtn.style.display = 'none';
-          gripBtn.style.display = 'none';
-          upBtn.style.display = 'none';
-          downBtn.style.display = 'none';
+          favBtn.classList.add('is-hidden');
+          copyBtn.classList.add('is-hidden');
+          editBtn.classList.add('is-hidden');
+          delBtn.classList.add('is-hidden');
+          gripBtn.classList.add('is-hidden');
+          upBtn.classList.add('is-hidden');
+          downBtn.classList.add('is-hidden');
           tdActions.append(confirmBtn, cancelBtn);
         }
         tr.appendChild(tdActions);
@@ -1272,12 +1364,11 @@
         try {
           await request('DELETE', `${api}/${r.id}`);
           lastDeletedRecord = r;
-          undoMsg.textContent = `Deleted port ${r.port} (${r.service})`;
-          undoToast.style.display = 'flex';
-          // Auto-dismiss undo toast after 8 seconds
-          clearTimeout(undoToastTimer);
-          undoToastTimer = setTimeout(() => { undoToast.style.display = 'none'; lastDeletedRecord = null; }, 8000);
-          show(`Deleted port ${r.port} (${r.service})`);
+          toast(`Deleted port ${r.port} (${r.service})`, {
+            type: 'msg', actionLabel: 'Undo', onAction: undoDelete, timeoutMs: 8000,
+          });
+          // Undo window expires: forget the record
+          setTimeout(() => { lastDeletedRecord = null; }, 8000);
           resetForm();
           hideAddForm();
           loadRecords();
@@ -1307,12 +1398,6 @@
       } catch (err) {
         show('Undo failed: ' + err.message, true);
       }
-    }
-
-    function dismissUndo() {
-      clearTimeout(undoToastTimer);
-      undoToast.style.display = 'none';
-      lastDeletedRecord = null;
     }
 
     function clearSearch(focus = true) {
@@ -1475,8 +1560,6 @@
     importFile.addEventListener('change', importData);
     prevPageBtn.addEventListener('click', () => { changePage(-1); });
     nextPageBtn.addEventListener('click', () => { changePage(1); });
-    undoBtn.addEventListener('click', undoDelete);
-    undoDismiss.addEventListener('click', dismissUndo);
 
     setInterval(async () => {
       if (allRecords.length) await refreshStatuses();
